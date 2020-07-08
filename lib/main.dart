@@ -79,8 +79,44 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: RichTextField()
+        child: RichTextField(
+          controller: RichTextEditingController(),
+        )
       ),
+    );
+  }
+}
+
+class RichTextEditingController extends TextEditingController {
+  @override
+  TextSpan buildTextSpan({TextStyle style, bool withComposing}) {
+    print(text);
+    print(value);
+
+    if (!value.composing.isValid || !withComposing) {
+      print("111");
+      if (text.length != 0) {
+        return TextSpan(
+          style: style,
+          children: <InlineSpan>[
+            TextSpan(style: TextStyle(backgroundColor: Colors.green), text: text),
+          ],
+        );
+      } else {
+        return TextSpan(
+            style: style, text: text
+        );
+      }
+    }
+    final TextStyle composingStyle = style.merge(
+      const TextStyle(decoration: TextDecoration.underline),
+    );
+    print("222");
+    return TextSpan(
+      style: style,
+      children: <InlineSpan>[
+        TextSpan(style: TextStyle(backgroundColor: Colors.green), text: text),
+      ],
     );
   }
 }

@@ -1768,8 +1768,8 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
   }
 }
 
-class _Editable extends LeafRenderObjectWidget {
-  const _Editable({
+class _Editable extends MultiChildRenderObjectWidget {
+  _Editable({
     Key key,
     this.textSpan,
     this.value,
@@ -1811,7 +1811,7 @@ class _Editable extends LeafRenderObjectWidget {
     this.devicePixelRatio,
   }) : assert(textDirection != null),
         assert(rendererIgnoresPointer != null),
-        super(key: key);
+        super(key: key, children: _extractChildren(textSpan));
 
   final TextSpan textSpan;
   final TextEditingValue value;
@@ -1851,6 +1851,19 @@ class _Editable extends LeafRenderObjectWidget {
   final bool enableInteractiveSelection;
   final TextSelectionDelegate textSelectionDelegate;
   final double devicePixelRatio;
+
+  // Traverses the InlineSpan tree and depth-first collects the list of
+  // child widgets that are created in WidgetSpans.
+  static List<Widget> _extractChildren(InlineSpan span) {
+    final List<Widget> result = <Widget>[];
+    span.visitChildren((InlineSpan span) {
+      if (span is WidgetSpan) {
+        result.add(span.child);
+      }
+      return true;
+    });
+    return result;
+  }
 
   @override
   RenderEditable createRenderObject(BuildContext context) {
