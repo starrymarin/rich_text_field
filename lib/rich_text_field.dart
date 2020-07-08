@@ -12,6 +12,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:rich_text_field/rich_editable_text.dart';
+import 'package:rich_text_field/rich_text_selection.dart';
 
 //import 'debug.dart';
 //import 'feedback.dart';
@@ -37,7 +38,7 @@ typedef InputCounterWidgetBuilder = Widget Function(
       @required bool isFocused,
     });
 
-class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDetectorBuilder {
+class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGestureDetectorBuilder {
   _TextFieldSelectionGestureDetectorBuilder({
     @required _RichTextFieldState state,
   }) : _state = state,
@@ -751,7 +752,7 @@ class RichTextField extends StatefulWidget {
   }
 }
 
-class _RichTextFieldState extends State<RichTextField> implements TextSelectionGestureDetectorBuilderDelegate {
+class _RichTextFieldState extends State<RichTextField> implements RichTextSelectionGestureDetectorBuilderDelegate {
   TextEditingController _controller;
   TextEditingController get _effectiveController => widget.controller ?? _controller;
 
@@ -773,7 +774,7 @@ class _RichTextFieldState extends State<RichTextField> implements TextSelectionG
   bool forcePressEnabled;
 
   @override
-  final GlobalKey<EditableTextState> editableTextKey = GlobalKey<EditableTextState>();
+  final GlobalKey<RichEditableTextState> editableTextKey = GlobalKey<RichEditableTextState>();
 
   @override
   bool get selectionEnabled => widget.selectionEnabled;
@@ -883,7 +884,7 @@ class _RichTextFieldState extends State<RichTextField> implements TextSelectionG
     super.dispose();
   }
 
-  EditableTextState get _editableText => editableTextKey.currentState;
+  RichEditableTextState get _editableText => editableTextKey.currentState;
 
   void _requestKeyboard() {
     _editableText?.requestKeyboard();

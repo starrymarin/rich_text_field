@@ -12,6 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:rich_text_field/rich_editable_text.dart';
 
 //import 'basic.dart';
 //import 'constants.dart';
@@ -30,48 +31,16 @@ export 'package:flutter/services.dart' show TextSelectionDelegate;
 /// called.
 const Duration _kDragSelectionUpdateThrottle = Duration(milliseconds: 50);
 
-/// Which type of selection handle to be displayed.
-///
-/// With mixed-direction text, both handles may be the same type. Examples:
-///
-/// * LTR text: 'the &lt;quick brown&gt; fox':
-///
-///   The '&lt;' is drawn with the [left] type, the '&gt;' with the [right]
-///
-/// * RTL text: 'XOF &lt;NWORB KCIUQ&gt; EHT':
-///
-///   Same as above.
-///
-/// * mixed text: '&lt;the NWOR&lt;B KCIUQ fox'
-///
-///   Here 'the QUICK B' is selected, but 'QUICK BROWN' is RTL. Both are drawn
-///   with the [left] type.
-///
-/// See also:
-///
-///  * [TextDirection], which discusses left-to-right and right-to-left text in
-///    more detail.
-enum TextSelectionHandleType {
-  /// The selection handle is to the left of the selection end point.
-  left,
-
-  /// The selection handle is to the right of the selection end point.
-  right,
-
-  /// The start and end of the selection are co-incident at this point.
-  collapsed,
-}
-
 /// The text position that a give selection handle manipulates. Dragging the
 /// [start] handle always moves the [start]/[baseOffset] of the selection.
 enum _TextSelectionHandlePosition { start, end }
 
 /// Signature for reporting changes to the selection component of a
-/// [TextEditingValue] for the purposes of a [TextSelectionOverlay]. The
+/// [TextEditingValue] for the purposes of a [RichTextSelectionOverlay]. The
 /// [caretRect] argument gives the location of the caret in the coordinate space
-/// of the [RenderBox] given by the [TextSelectionOverlay.renderObject].
+/// of the [RenderBox] given by the [RichTextSelectionOverlay.renderObject].
 ///
-/// Used by [TextSelectionOverlay.onSelectionOverlayChanged].
+/// Used by [RichTextSelectionOverlay.onSelectionOverlayChanged].
 typedef TextSelectionOverlayChanged = void Function(TextEditingValue value, Rect caretRect);
 
 /// Signature for when a pointer that's dragging to select text has moved again.
@@ -83,7 +52,7 @@ typedef TextSelectionOverlayChanged = void Function(TextEditingValue value, Rect
 /// pointer movement. It's the same as the one passed to [DragGestureRecognizer.onUpdate].
 ///
 /// This signature is different from [GestureDragUpdateCallback] to make it
-/// easier for various text fields to use [TextSelectionGestureDetector] without
+/// easier for various text fields to use [RichTextSelectionGestureDetector] without
 /// having to store the start position.
 typedef DragSelectionUpdateCallback = void Function(DragStartDetails startDetails, DragUpdateDetails updateDetails);
 
@@ -91,7 +60,7 @@ typedef DragSelectionUpdateCallback = void Function(DragStartDetails startDetail
 /// implementor of the toolbar widget.
 ///
 /// Override text operations such as [handleCut] if needed.
-abstract class TextSelectionControls {
+abstract class RichTextSelectionControls {
   /// Builds a selection handle of the given type.
   ///
   /// The top left corner of this widget is positioned at the bottom of the
@@ -263,11 +232,11 @@ abstract class TextSelectionControls {
 ///
 /// The selection handles are displayed in the [Overlay] that most closely
 /// encloses the given [BuildContext].
-class TextSelectionOverlay {
+class RichTextSelectionOverlay {
   /// Creates an object that manages overlay entries for selection handles.
   ///
   /// The [context] must not be null and must have an [Overlay] as an ancestor.
-  TextSelectionOverlay({
+  RichTextSelectionOverlay({
     @required TextEditingValue value,
     @required this.context,
     this.debugRequiredFor,
@@ -320,7 +289,7 @@ class TextSelectionOverlay {
   final RenderEditable renderObject;
 
   /// Builds text selection handles and toolbar.
-  final TextSelectionControls selectionControls;
+  final RichTextSelectionControls selectionControls;
 
   /// The delegate for manipulating the current selection in the owning
   /// text field.
@@ -604,7 +573,7 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
   final RenderEditable renderObject;
   final ValueChanged<TextSelection> onSelectionHandleChanged;
   final VoidCallback onSelectionHandleTapped;
-  final TextSelectionControls selectionControls;
+  final RichTextSelectionControls selectionControls;
   final DragStartBehavior dragStartBehavior;
 
   @override
@@ -632,7 +601,7 @@ class _TextSelectionHandleOverlayState
   void initState() {
     super.initState();
 
-    _controller = AnimationController(duration: TextSelectionOverlay.fadeDuration, vsync: this);
+    _controller = AnimationController(duration: RichTextSelectionOverlay.fadeDuration, vsync: this);
 
     _handleVisibilityChanged();
     widget._visibility.addListener(_handleVisibilityChanged);
@@ -810,11 +779,11 @@ class _TextSelectionHandleOverlayState
   }
 }
 
-/// Delegate interface for the [TextSelectionGestureDetectorBuilder].
+/// Delegate interface for the [RichTextSelectionGestureDetectorBuilder].
 ///
 /// The interface is usually implemented by textfield implementations wrapping
-/// [EditableText], that use a [TextSelectionGestureDetectorBuilder] to build a
-/// [TextSelectionGestureDetector] for their [EditableText]. The delegate provides
+/// [EditableText], that use a [RichTextSelectionGestureDetectorBuilder] to build a
+/// [RichTextSelectionGestureDetector] for their [EditableText]. The delegate provides
 /// the builder with information about the current state of the textfield.
 /// Based on these information, the builder adds the correct gesture handlers
 /// to the gesture detector.
@@ -824,10 +793,10 @@ class _TextSelectionHandleOverlayState
 ///  * [TextField], which implements this delegate for the Material textfield.
 ///  * [CupertinoTextField], which implements this delegate for the Cupertino
 ///    textfield.
-abstract class TextSelectionGestureDetectorBuilderDelegate {
+abstract class RichTextSelectionGestureDetectorBuilderDelegate {
   /// [GlobalKey] to the [EditableText] for which the
-  /// [TextSelectionGestureDetectorBuilder] will build a [TextSelectionGestureDetector].
-  GlobalKey<EditableTextState> get editableTextKey;
+  /// [RichTextSelectionGestureDetectorBuilder] will build a [RichTextSelectionGestureDetector].
+  GlobalKey<RichEditableTextState> get editableTextKey;
 
   /// Whether the textfield should respond to force presses.
   bool get forcePressEnabled;
@@ -836,7 +805,7 @@ abstract class TextSelectionGestureDetectorBuilderDelegate {
   bool get selectionEnabled;
 }
 
-/// Builds a [TextSelectionGestureDetector] to wrap an [EditableText].
+/// Builds a [RichTextSelectionGestureDetector] to wrap an [EditableText].
 ///
 /// The class implements sensible defaults for many user interactions
 /// with an [EditableText] (see the documentation of the various gesture handler
@@ -845,7 +814,7 @@ abstract class TextSelectionGestureDetectorBuilderDelegate {
 /// responds to these gesture events by overriding the corresponding handler
 /// methods of this class.
 ///
-/// The resulting [TextSelectionGestureDetector] to wrap an [EditableText] is
+/// The resulting [RichTextSelectionGestureDetector] to wrap an [EditableText] is
 /// obtained by calling [buildGestureDetector].
 ///
 /// See also:
@@ -854,21 +823,21 @@ abstract class TextSelectionGestureDetectorBuilderDelegate {
 ///    gesture logic of an [EditableText].
 ///  * [CupertinoTextField], which uses a subclass to implement the
 ///    Cupertino-specific gesture logic of an [EditableText].
-class TextSelectionGestureDetectorBuilder {
-  /// Creates a [TextSelectionGestureDetectorBuilder].
+class RichTextSelectionGestureDetectorBuilder {
+  /// Creates a [RichTextSelectionGestureDetectorBuilder].
   ///
   /// The [delegate] must not be null.
-  TextSelectionGestureDetectorBuilder({
+  RichTextSelectionGestureDetectorBuilder({
     @required this.delegate,
   }) : assert(delegate != null);
 
-  /// The delegate for this [TextSelectionGestureDetectorBuilder].
+  /// The delegate for this [RichTextSelectionGestureDetectorBuilder].
   ///
   /// The delegate provides the builder with information about what actions can
   /// currently be performed on the textfield. Based on this, the builder adds
   /// the correct gesture handlers to the gesture detector.
   @protected
-  final TextSelectionGestureDetectorBuilderDelegate delegate;
+  final RichTextSelectionGestureDetectorBuilderDelegate delegate;
 
   /// Whether to show the selection toolbar.
   ///
@@ -879,23 +848,23 @@ class TextSelectionGestureDetectorBuilder {
   bool _shouldShowSelectionToolbar = true;
 
   /// The [State] of the [EditableText] for which the builder will provide a
-  /// [TextSelectionGestureDetector].
+  /// [RichTextSelectionGestureDetector].
   @protected
-  EditableTextState get editableText => delegate.editableTextKey.currentState;
+  RichEditableTextState get editableText => delegate.editableTextKey.currentState;
 
   /// The [RenderObject] of the [EditableText] for which the builder will
-  /// provide a [TextSelectionGestureDetector].
+  /// provide a [RichTextSelectionGestureDetector].
   @protected
   RenderEditable get renderEditable => editableText.renderEditable;
 
-  /// Handler for [TextSelectionGestureDetector.onTapDown].
+  /// Handler for [RichTextSelectionGestureDetector.onTapDown].
   ///
   /// By default, it forwards the tap to [RenderEditable.handleTapDown] and sets
   /// [shouldShowSelectionToolbar] to true if the tap was initiated by a finger or stylus.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onTapDown], which triggers this callback.
+  ///  * [RichTextSelectionGestureDetector.onTapDown], which triggers this callback.
   @protected
   void onTapDown(TapDownDetails details) {
     renderEditable.handleTapDown(details);
@@ -909,7 +878,7 @@ class TextSelectionGestureDetectorBuilder {
         || kind == PointerDeviceKind.stylus;
   }
 
-  /// Handler for [TextSelectionGestureDetector.onForcePressStart].
+  /// Handler for [RichTextSelectionGestureDetector.onForcePressStart].
   ///
   /// By default, it selects the word at the position of the force press,
   /// if selection is enabled.
@@ -918,7 +887,7 @@ class TextSelectionGestureDetectorBuilder {
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onForcePressStart], which triggers this
+  ///  * [RichTextSelectionGestureDetector.onForcePressStart], which triggers this
   ///    callback.
   @protected
   void onForcePressStart(ForcePressDetails details) {
@@ -932,7 +901,7 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
-  /// Handler for [TextSelectionGestureDetector.onForcePressEnd].
+  /// Handler for [RichTextSelectionGestureDetector.onForcePressEnd].
   ///
   /// By default, it selects words in the range specified in [details] and shows
   /// toolbar if it is necessary.
@@ -941,7 +910,7 @@ class TextSelectionGestureDetectorBuilder {
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onForcePressEnd], which triggers this
+  ///  * [RichTextSelectionGestureDetector.onForcePressEnd], which triggers this
   ///    callback.
   @protected
   void onForcePressEnd(ForcePressDetails details) {
@@ -954,13 +923,13 @@ class TextSelectionGestureDetectorBuilder {
       editableText.showToolbar();
   }
 
-  /// Handler for [TextSelectionGestureDetector.onSingleTapUp].
+  /// Handler for [RichTextSelectionGestureDetector.onSingleTapUp].
   ///
   /// By default, it selects word edge if selection is enabled.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onSingleTapUp], which triggers
+  ///  * [RichTextSelectionGestureDetector.onSingleTapUp], which triggers
   ///    this callback.
   @protected
   void onSingleTapUp(TapUpDetails details) {
@@ -969,25 +938,25 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
-  /// Handler for [TextSelectionGestureDetector.onSingleTapCancel].
+  /// Handler for [RichTextSelectionGestureDetector.onSingleTapCancel].
   ///
   /// By default, it services as place holder to enable subclass override.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onSingleTapCancel], which triggers
+  ///  * [RichTextSelectionGestureDetector.onSingleTapCancel], which triggers
   ///    this callback.
   @protected
   void onSingleTapCancel() {/* Subclass should override this method if needed. */}
 
-  /// Handler for [TextSelectionGestureDetector.onSingleLongTapStart].
+  /// Handler for [RichTextSelectionGestureDetector.onSingleLongTapStart].
   ///
   /// By default, it selects text position specified in [details] if selection
   /// is enabled.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onSingleLongTapStart], which triggers
+  ///  * [RichTextSelectionGestureDetector.onSingleLongTapStart], which triggers
   ///    this callback.
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
@@ -999,14 +968,14 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
-  /// Handler for [TextSelectionGestureDetector.onSingleLongTapMoveUpdate].
+  /// Handler for [RichTextSelectionGestureDetector.onSingleLongTapMoveUpdate].
   ///
   /// By default, it updates the selection location specified in [details] if
   /// selection is enabled.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onSingleLongTapMoveUpdate], which
+  ///  * [RichTextSelectionGestureDetector.onSingleLongTapMoveUpdate], which
   ///    triggers this callback.
   @protected
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
@@ -1018,13 +987,13 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
-  /// Handler for [TextSelectionGestureDetector.onSingleLongTapEnd].
+  /// Handler for [RichTextSelectionGestureDetector.onSingleLongTapEnd].
   ///
   /// By default, it shows toolbar if necessary.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onSingleLongTapEnd], which triggers this
+  ///  * [RichTextSelectionGestureDetector.onSingleLongTapEnd], which triggers this
   ///    callback.
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
@@ -1032,14 +1001,14 @@ class TextSelectionGestureDetectorBuilder {
       editableText.showToolbar();
   }
 
-  /// Handler for [TextSelectionGestureDetector.onDoubleTapDown].
+  /// Handler for [RichTextSelectionGestureDetector.onDoubleTapDown].
   ///
   /// By default, it selects a word through [renderEditable.selectWord] if
   /// selectionEnabled and shows toolbar if necessary.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onDoubleTapDown], which triggers this
+  ///  * [RichTextSelectionGestureDetector.onDoubleTapDown], which triggers this
   ///    callback.
   @protected
   void onDoubleTapDown(TapDownDetails details) {
@@ -1050,13 +1019,13 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
-  /// Handler for [TextSelectionGestureDetector.onDragSelectionStart].
+  /// Handler for [RichTextSelectionGestureDetector.onDragSelectionStart].
   ///
   /// By default, it selects a text position specified in [details].
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onDragSelectionStart], which triggers
+  ///  * [RichTextSelectionGestureDetector.onDragSelectionStart], which triggers
   ///    this callback.
   @protected
   void onDragSelectionStart(DragStartDetails details) {
@@ -1066,13 +1035,13 @@ class TextSelectionGestureDetectorBuilder {
     );
   }
 
-  /// Handler for [TextSelectionGestureDetector.onDragSelectionUpdate].
+  /// Handler for [RichTextSelectionGestureDetector.onDragSelectionUpdate].
   ///
   /// By default, it updates the selection location specified in [details].
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onDragSelectionUpdate], which triggers
+  ///  * [RichTextSelectionGestureDetector.onDragSelectionUpdate], which triggers
   ///    this callback./lib/src/material/text_field.dart
   @protected
   void onDragSelectionUpdate(DragStartDetails startDetails, DragUpdateDetails updateDetails) {
@@ -1083,18 +1052,18 @@ class TextSelectionGestureDetectorBuilder {
     );
   }
 
-  /// Handler for [TextSelectionGestureDetector.onDragSelectionEnd].
+  /// Handler for [RichTextSelectionGestureDetector.onDragSelectionEnd].
   ///
   /// By default, it services as place holder to enable subclass override.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionGestureDetector.onDragSelectionEnd], which triggers this
+  ///  * [RichTextSelectionGestureDetector.onDragSelectionEnd], which triggers this
   ///    callback.
   @protected
   void onDragSelectionEnd(DragEndDetails details) {/* Subclass should override this method if needed. */}
 
-  /// Returns a [TextSelectionGestureDetector] configured with the handlers
+  /// Returns a [RichTextSelectionGestureDetector] configured with the handlers
   /// provided by this builder.
   ///
   /// The [child] or its subtree should contain [EditableText].
@@ -1103,7 +1072,7 @@ class TextSelectionGestureDetectorBuilder {
     HitTestBehavior behavior,
     Widget child,
   }) {
-    return TextSelectionGestureDetector(
+    return RichTextSelectionGestureDetector(
       key: key,
       onTapDown: onTapDown,
       onForcePressStart: delegate.forcePressEnabled ? onForcePressStart : null,
@@ -1135,12 +1104,12 @@ class TextSelectionGestureDetectorBuilder {
 ///  * [TextField], a Material text field which uses this gesture detector.
 ///  * [CupertinoTextField], a Cupertino text field which uses this gesture
 ///    detector.
-class TextSelectionGestureDetector extends StatefulWidget {
-  /// Create a [TextSelectionGestureDetector].
+class RichTextSelectionGestureDetector extends StatefulWidget {
+  /// Create a [RichTextSelectionGestureDetector].
   ///
   /// Multiple callbacks can be called for one sequence of input gesture.
   /// The [child] parameter must not be null.
-  const TextSelectionGestureDetector({
+  const RichTextSelectionGestureDetector({
     Key key,
     this.onTapDown,
     this.onForcePressStart,
@@ -1220,10 +1189,10 @@ class TextSelectionGestureDetector extends StatefulWidget {
   final Widget child;
 
   @override
-  State<StatefulWidget> createState() => _TextSelectionGestureDetectorState();
+  State<StatefulWidget> createState() => _RichTextSelectionGestureDetectorState();
 }
 
-class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetector> {
+class _RichTextSelectionGestureDetectorState extends State<RichTextSelectionGestureDetector> {
   // Counts down for a short duration after a previous tap. Null otherwise.
   Timer _doubleTapTimer;
   Offset _lastTapOffset;
