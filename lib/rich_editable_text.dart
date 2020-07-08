@@ -51,232 +51,6 @@ const Duration _kCursorBlinkWaitForStart = Duration(milliseconds: 150);
 // is shown in an obscured text field.
 const int _kObscureShowLatestCharCursorTicks = 3;
 
-/// A controller for an editable text field.
-///
-/// Whenever the user modifies a text field with an associated
-/// [TextEditingController], the text field updates [value] and the controller
-/// notifies its listeners. Listeners can then read the [text] and [selection]
-/// properties to learn what the user has typed or how the selection has been
-/// updated.
-///
-/// Similarly, if you modify the [text] or [selection] properties, the text
-/// field will be notified and will update itself appropriately.
-///
-/// A [TextEditingController] can also be used to provide an initial value for a
-/// text field. If you build a text field with a controller that already has
-/// [text], the text field will use that text as its initial value.
-///
-/// The [text] or [selection] properties can be set from within a listener
-/// added to this controller. If both properties need to be changed then the
-/// controller's [value] should be set instead.
-///
-/// Remember to [dispose] of the [TextEditingController] when it is no longer needed.
-/// This will ensure we discard any resources used by the object.
-/// {@tool dartpad --template=stateful_widget_material}
-/// This example creates a [TextField] with a [TextEditingController] whose
-/// change listener forces the entered text to be lower case and keeps the
-/// cursor at the end of the input.
-///
-/// ```dart
-/// final _controller = TextEditingController();
-///
-/// void initState() {
-///   super.initState();
-///   _controller.addListener(() {
-///     final text = _controller.text.toLowerCase();
-///     _controller.value = _controller.value.copyWith(
-///       text: text,
-///       selection: TextSelection(baseOffset: text.length, extentOffset: text.length),
-///       composing: TextRange.empty,
-///     );
-///   });
-/// }
-///
-/// void dispose() {
-///   _controller.dispose();
-///   super.dispose();
-/// }
-///
-/// Widget build(BuildContext context) {
-///   return Scaffold(
-///     body: Container(
-///      alignment: Alignment.center,
-///       padding: const EdgeInsets.all(6),
-///       child: TextFormField(
-///         controller: _controller,
-///         decoration: InputDecoration(border: OutlineInputBorder()),
-///       ),
-///     ),
-///   );
-/// }
-/// ```
-/// {@end-tool}
-///
-/// See also:
-///
-///  * [TextField], which is a Material Design text field that can be controlled
-///    with a [TextEditingController].
-///  * [EditableText], which is a raw region of editable text that can be
-///    controlled with a [TextEditingController].
-///  * Learn how to use a [TextEditingController] in one of our [cookbook recipe]s.(https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-texteditingcontroller)
-class TextEditingController extends ValueNotifier<TextEditingValue> {
-  /// Creates a controller for an editable text field.
-  ///
-  /// This constructor treats a null [text] argument as if it were the empty
-  /// string.
-  TextEditingController({ String text })
-      : super(text == null ? TextEditingValue.empty : TextEditingValue(text: text));
-
-  /// Creates a controller for an editable text field from an initial [TextEditingValue].
-  ///
-  /// This constructor treats a null [value] argument as if it were
-  /// [TextEditingValue.empty].
-  TextEditingController.fromValue(TextEditingValue value)
-      : super(value ?? TextEditingValue.empty);
-
-  /// The current string the user is editing.
-  String get text => value.text;
-  /// Setting this will notify all the listeners of this [TextEditingController]
-  /// that they need to update (it calls [notifyListeners]). For this reason,
-  /// this value should only be set between frames, e.g. in response to user
-  /// actions, not during the build, layout, or paint phases.
-  ///
-  /// This property can be set from a listener added to this
-  /// [TextEditingController]; however, one should not also set [selection]
-  /// in a separate statement. To change both the [text] and the [selection]
-  /// change the controller's [value].
-  set text(String newText) {
-    value = value.copyWith(
-      text: newText,
-      selection: const TextSelection.collapsed(offset: -1),
-      composing: TextRange.empty,
-    );
-  }
-
-  /// Builds [TextSpan] from current editing value.
-  ///
-  /// By default makes text in composing range appear as underlined.
-  /// Descendants can override this method to customize appearance of text.
-  TextSpan buildTextSpan({TextStyle style , bool withComposing}) {
-    if (!value.composing.isValid || !withComposing) {
-      return TextSpan(style: style, text: text);
-    }
-    final TextStyle composingStyle = style.merge(
-      const TextStyle(decoration: TextDecoration.underline),
-    );
-    return TextSpan(
-        style: style,
-        children: <TextSpan>[
-          TextSpan(text: value.composing.textBefore(value.text)),
-          TextSpan(
-            style: composingStyle,
-            text: value.composing.textInside(value.text),
-          ),
-          TextSpan(text: value.composing.textAfter(value.text)),
-        ]);
-  }
-
-  /// The currently selected [text].
-  ///
-  /// If the selection is collapsed, then this property gives the offset of the
-  /// cursor within the text.
-  TextSelection get selection => value.selection;
-  /// Setting this will notify all the listeners of this [TextEditingController]
-  /// that they need to update (it calls [notifyListeners]). For this reason,
-  /// this value should only be set between frames, e.g. in response to user
-  /// actions, not during the build, layout, or paint phases.
-  ///
-  /// This property can be set from a listener added to this
-  /// [TextEditingController]; however, one should not also set [text]
-  /// in a separate statement. To change both the [text] and the [selection]
-  /// change the controller's [value].
-  set selection(TextSelection newSelection) {
-    if (!isSelectionWithinTextBounds(newSelection))
-      throw FlutterError('invalid text selection: $newSelection');
-    value = value.copyWith(selection: newSelection, composing: TextRange.empty);
-  }
-
-  /// Set the [value] to empty.
-  ///
-  /// After calling this function, [text] will be the empty string and the
-  /// selection will be invalid.
-  ///
-  /// Calling this will notify all the listeners of this [TextEditingController]
-  /// that they need to update (it calls [notifyListeners]). For this reason,
-  /// this method should only be called between frames, e.g. in response to user
-  /// actions, not during the build, layout, or paint phases.
-  void clear() {
-    value = TextEditingValue.empty;
-  }
-
-  /// Set the composing region to an empty range.
-  ///
-  /// The composing region is the range of text that is still being composed.
-  /// Calling this function indicates that the user is done composing that
-  /// region.
-  ///
-  /// Calling this will notify all the listeners of this [TextEditingController]
-  /// that they need to update (it calls [notifyListeners]). For this reason,
-  /// this method should only be called between frames, e.g. in response to user
-  /// actions, not during the build, layout, or paint phases.
-  void clearComposing() {
-    value = value.copyWith(composing: TextRange.empty);
-  }
-
-  /// Check that the [selection] is inside of the bounds of [text].
-  bool isSelectionWithinTextBounds(TextSelection selection) {
-    return selection.start <= text.length && selection.end <= text.length;
-  }
-}
-
-/// Toolbar configuration for [EditableText].
-///
-/// Toolbar is a context menu that will show up when user right click or long
-/// press the [EditableText]. It includes several options: cut, copy, paste,
-/// and select all.
-///
-/// [EditableText] and its derived widgets have their own default [ToolbarOptions].
-/// Create a custom [ToolbarOptions] if you want explicit control over the toolbar
-/// option.
-class ToolbarOptions {
-  /// Create a toolbar configuration with given options.
-  ///
-  /// All options default to false if they are not explicitly set.
-  const ToolbarOptions({
-    this.copy = false,
-    this.cut = false,
-    this.paste = false,
-    this.selectAll = false,
-  }) : assert(copy != null),
-        assert(cut != null),
-        assert(paste != null),
-        assert(selectAll != null);
-
-  /// Whether to show copy option in toolbar.
-  ///
-  /// Defaults to false. Must not be null.
-  final bool copy;
-
-  /// Whether to show cut option in toolbar.
-  ///
-  /// If [EditableText.readOnly] is set to true, cut will be disabled regardless.
-  ///
-  /// Defaults to false. Must not be null.
-  final bool cut;
-
-  /// Whether to show paste option in toolbar.
-  ///
-  /// If [EditableText.readOnly] is set to true, paste will be disabled regardless.
-  ///
-  /// Defaults to false. Must not be null.
-  final bool paste;
-
-  /// Whether to show select all option in toolbar.
-  ///
-  /// Defaults to false. Must not be null.
-  final bool selectAll;
-}
-
 /// A basic text input field.
 ///
 /// This widget interacts with the [TextInput] service to let the user edit the
@@ -332,7 +106,7 @@ class ToolbarOptions {
 ///
 ///  * [TextField], which is a full-featured, material-design text input field
 ///    with placeholder text, labels, and [Form] integration.
-class EditableText extends StatefulWidget {
+class RichEditableText extends StatefulWidget {
   /// Creates a basic text input control.
   ///
   /// The [maxLines] property can be set to null to remove the restriction on
@@ -353,7 +127,7 @@ class EditableText extends StatefulWidget {
   /// [selectionWidthStyle], [textAlign], [dragStartBehavior], [scrollPadding],
   /// [dragStartBehavior], [toolbarOptions], [rendererIgnoresPointer], and
   /// [readOnly] arguments must not be null.
-  EditableText({
+  RichEditableText({
     Key key,
     @required this.controller,
     @required this.focusNode,
@@ -518,7 +292,7 @@ class EditableText extends StatefulWidget {
   /// {@template flutter.widgets.editableText.showCursor}
   /// Whether to show cursor.
   ///
-  /// The cursor refers to the blinking caret when the [EditableText] is focused.
+  /// The cursor refers to the blinking caret when the [RichEditableText] is focused.
   /// {@endtemplate}
   ///
   /// See also:
@@ -752,16 +526,16 @@ class EditableText extends StatefulWidget {
 
   /// Optional delegate for building the text selection handles and toolbar.
   ///
-  /// The [EditableText] widget used on its own will not trigger the display
+  /// The [RichEditableText] widget used on its own will not trigger the display
   /// of the selection toolbar by itself. The toolbar is shown by calling
-  /// [EditableTextState.showToolbar] in response to an appropriate user event.
+  /// [RichEditableTextState.showToolbar] in response to an appropriate user event.
   ///
   /// See also:
   ///
-  ///  * [CupertinoTextField], which wraps an [EditableText] and which shows the
+  ///  * [CupertinoTextField], which wraps an [RichEditableText] and which shows the
   ///    selection toolbar upon user events that are appropriate on the iOS
   ///    platform.
-  ///  * [TextField], a Material Design themed wrapper of [EditableText], which
+  ///  * [TextField], a Material Design themed wrapper of [RichEditableText], which
   ///    shows the selection toolbar upon appropriate user events based on the
   ///    user's platform set in [ThemeData.platform].
   final TextSelectionControls selectionControls;
@@ -884,7 +658,7 @@ class EditableText extends StatefulWidget {
   /// is often desirable to move the focus to the next or previous field.  To do
   /// this, handle it as in this example, by calling [FocusNode.focusNext] in
   /// the [TextFormField.onFieldSubmitted] callback ([TextFormField] wraps
-  /// [EditableText] internally, and uses the value of `onFieldSubmitted` as its
+  /// [RichEditableText] internally, and uses the value of `onFieldSubmitted` as its
   /// [onSubmitted]).
   ///
   /// ```dart
@@ -1065,7 +839,7 @@ class EditableText extends StatefulWidget {
   bool get selectionEnabled => enableInteractiveSelection;
 
   @override
-  EditableTextState createState() => EditableTextState();
+  RichEditableTextState createState() => RichEditableTextState();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -1092,8 +866,8 @@ class EditableText extends StatefulWidget {
   }
 }
 
-/// State for a [EditableText].
-class EditableTextState extends State<EditableText> with AutomaticKeepAliveClientMixin<EditableText>, WidgetsBindingObserver, TickerProviderStateMixin<EditableText> implements TextInputClient, TextSelectionDelegate {
+/// State for a [RichEditableText].
+class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAliveClientMixin<RichEditableText>, WidgetsBindingObserver, TickerProviderStateMixin<RichEditableText> implements TextInputClient, TextSelectionDelegate {
   Timer _cursorTimer;
   bool _targetCursorVisibility = false;
   final ValueNotifier<bool> _cursorVisibilityNotifier = ValueNotifier<bool>(true);
@@ -1171,7 +945,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   @override
-  void didUpdateWidget(EditableText oldWidget) {
+  void didUpdateWidget(RichEditableText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller.removeListener(_didChangeTextEditingValue);
@@ -1749,7 +1523,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _startCursorTimer() {
     _targetCursorVisibility = true;
     _cursorBlinkOpacityController.value = 1.0;
-    if (EditableText.debugDeterministicCursor)
+    if (RichEditableText.debugDeterministicCursor)
       return;
     if (widget.cursorOpacityAnimates) {
       _cursorTimer = Timer.periodic(_kCursorBlinkWaitForStart, _cursorWaitForStart);
@@ -1763,7 +1537,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     _cursorTimer = null;
     _targetCursorVisibility = false;
     _cursorBlinkOpacityController.value = 0.0;
-    if (EditableText.debugDeterministicCursor)
+    if (RichEditableText.debugDeterministicCursor)
       return;
     if (resetCharTicks)
       _obscureShowCharTicksPending = 0;
@@ -1931,7 +1705,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
               value: _value,
               cursorColor: _cursorColor,
               backgroundCursorColor: widget.backgroundCursorColor,
-              showCursor: EditableText.debugDeterministicCursor
+              showCursor: RichEditableText.debugDeterministicCursor
                   ? ValueNotifier<bool>(widget.showCursor)
                   : _cursorVisibilityNotifier,
               forceLine: widget.forceLine,
@@ -1994,8 +1768,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 }
 
-class _Editable extends MultiChildRenderObjectWidget {
-  _Editable({
+class _Editable extends LeafRenderObjectWidget {
+  const _Editable({
     Key key,
     this.textSpan,
     this.value,
@@ -2037,7 +1811,7 @@ class _Editable extends MultiChildRenderObjectWidget {
     this.devicePixelRatio,
   }) : assert(textDirection != null),
         assert(rendererIgnoresPointer != null),
-        super(key: key, children: _extractChildren(textSpan));
+        super(key: key);
 
   final TextSpan textSpan;
   final TextEditingValue value;
@@ -2077,19 +1851,6 @@ class _Editable extends MultiChildRenderObjectWidget {
   final bool enableInteractiveSelection;
   final TextSelectionDelegate textSelectionDelegate;
   final double devicePixelRatio;
-
-  // Traverses the InlineSpan tree and depth-first collects the list of
-  // child widgets that are created in WidgetSpans.
-  static List<Widget> _extractChildren(InlineSpan span) {
-    final List<Widget> result = <Widget>[];
-    span.visitChildren((InlineSpan span) {
-      if (span is WidgetSpan) {
-        result.add(span.child);
-      }
-      return true;
-    });
-    return result;
-  }
 
   @override
   RenderEditable createRenderObject(BuildContext context) {
