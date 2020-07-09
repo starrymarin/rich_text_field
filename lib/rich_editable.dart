@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:math' as math;
-import 'dart:ui' as ui show TextBox, lerpDouble, BoxHeightStyle, BoxWidthStyle;
+import 'dart:ui' as ui show TextBox, lerpDouble, BoxHeightStyle, BoxWidthStyle, PlaceholderAlignment;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -41,7 +41,7 @@ typedef RichCaretChangedHandler = void Function(Rect caretRect);
 /// Represents the coordinates of the point in a selection, and the text
 /// direction at that point, relative to top left of the [RichRenderEditable] that
 /// holds the selection.
-@immutable
+//@immutable
 //class TextSelectionPoint {
 //  /// Creates a description of a point in a text selection.
 //  ///
@@ -67,6 +67,21 @@ typedef RichCaretChangedHandler = void Function(Rect caretRect);
 //    return '$point';
 //  }
 //}
+
+class TextParentData extends ContainerBoxParentData<RenderBox> {
+  /// The scaling of the text.
+  double scale;
+
+  @override
+  String toString() {
+    final List<String> values = <String>[
+      if (offset != null) 'offset=$offset',
+      if (scale != null) 'scale=$scale',
+      super.toString(),
+    ];
+    return values.join('; ');
+  }
+}
 
 // Check if the given code unit is a white space or separator
 // character.
@@ -133,7 +148,10 @@ bool _isWhitespace(int codeUnit) {
 /// Keyboard handling, IME handling, scrolling, toggling the [showCursor] value
 /// to actually blink the cursor, and other features not mentioned above are the
 /// responsibility of higher layers and not handled by this object.
-class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
+class RichRenderEditable extends RenderBox with
+    ContainerRenderObjectMixin<RenderBox, TextParentData>,
+    RenderBoxContainerDefaultsMixin<RenderBox, TextParentData>,
+    RelayoutWhenSystemFontsChangeMixin {
   /// Creates a render object that implements the visual aspects of a text field.
   ///
   /// The [textAlign] argument must not be null. It defaults to [TextAlign.start].
@@ -184,6 +202,7 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
     bool enableInteractiveSelection,
     EdgeInsets floatingCursorAddedMargin = const EdgeInsets.fromLTRB(4, 4, 4, 5),
     @required this.textSelectionDelegate,
+    List<RenderBox> children,
   }) : assert(textAlign != null),
         assert(textDirection != null, 'RenderEditable created without a textDirection.'),
         assert(maxLines == null || maxLines > 0),
@@ -247,6 +266,14 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
     assert(_showCursor != null);
     assert(!_showCursor.value || cursorColor != null);
     this.hasFocus = hasFocus ?? false;
+    addAll(children);
+    _extractPlaceholderSpans(text);
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! TextParentData)
+      child.parentData = TextParentData();
   }
 
   /// Character used to obscure text if [obscureText] is true.
@@ -269,6 +296,8 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
   ///
   /// The default value of this property is false.
   bool ignorePointer;
+
+  bool _needRelayout = false;
 
   /// {@macro flutter.widgets.text.DefaultTextStyle.textWidthBasis}
   TextWidthBasis get textWidthBasis => _textPainter.textWidthBasis;
@@ -720,16 +749,42 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
     return _cachedPlainText;
   }
 
+  List<PlaceholderSpan> _placeholderSpans;
+  void _extractPlaceholderSpans(InlineSpan span) {
+    _placeholderSpans = <PlaceholderSpan>[];
+    span.visitChildren((InlineSpan span) {
+      if (span is PlaceholderSpan) {
+        final PlaceholderSpan placeholderSpan = span;
+        _placeholderSpans.add(placeholderSpan);
+      }
+      return true;
+    });
+  }
+
   /// The text to display.
   TextSpan get text => _textPainter.text as TextSpan;
   final TextPainter _textPainter;
   set text(TextSpan value) {
-    if (_textPainter.text == value)
-      return;
-    _textPainter.text = value;
-    _cachedPlainText = null;
-    markNeedsTextLayout();
-    markNeedsSemanticsUpdate();
+    assert(value != null);
+    switch (_textPainter.text.compareTo(value)) {
+      case RenderComparison.identical:
+      case RenderComparison.metadata:
+        return;
+      case RenderComparison.paint:
+        _textPainter.text = value;
+        _cachedPlainText = null;
+        _extractPlaceholderSpans(value);
+        markNeedsPaint();
+        markNeedsSemanticsUpdate();
+        break;
+      case RenderComparison.layout:
+        _textPainter.text = value;
+        _cachedPlainText = null;
+        _needRelayout = true;
+        _extractPlaceholderSpans(value);
+        markNeedsTextLayout();
+        break;
+    }
   }
 
   /// How the text should be aligned horizontally.
@@ -1402,13 +1457,21 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
 
   @override
   double computeMinIntrinsicWidth(double height) {
-    _layoutText(maxWidth: double.infinity);
+    if (!_canComputeIntrinsics()) {
+      return 0.0;
+    }
+    _computeChildrenWidthWithMinIntrinsics(height);
+    _layoutText(); // layout with infinite width.
     return _textPainter.minIntrinsicWidth;
   }
 
   @override
   double computeMaxIntrinsicWidth(double height) {
-    _layoutText(maxWidth: double.infinity);
+    if (!_canComputeIntrinsics()) {
+      return 0.0;
+    }
+    _computeChildrenWidthWithMaxIntrinsics(height);
+    _layoutText(); // layout with infinite width.
     return _textPainter.maxIntrinsicWidth + cursorWidth;
   }
 
@@ -1452,14 +1515,98 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
     return math.max(preferredLineHeight, _textPainter.height);
   }
 
-  @override
-  double computeMinIntrinsicHeight(double width) {
+  bool _canComputeIntrinsics() {
+    for (final PlaceholderSpan span in _placeholderSpans) {
+      switch (span.alignment) {
+        case ui.PlaceholderAlignment.baseline:
+        case ui.PlaceholderAlignment.aboveBaseline:
+        case ui.PlaceholderAlignment.belowBaseline: {
+          assert(RenderObject.debugCheckingIntrinsics,
+          'Intrinsics are not available for PlaceholderAlignment.baseline, '
+              'PlaceholderAlignment.aboveBaseline, or PlaceholderAlignment.belowBaseline,');
+          return false;
+        }
+        case ui.PlaceholderAlignment.top:
+        case ui.PlaceholderAlignment.middle:
+        case ui.PlaceholderAlignment.bottom: {
+          continue;
+        }
+      }
+    }
+    return true;
+  }
+
+  void _computeChildrenWidthWithMaxIntrinsics(double height) {
+    RenderBox child = firstChild;
+    final List<PlaceholderDimensions> placeholderDimensions = List<PlaceholderDimensions>(childCount);
+    int childIndex = 0;
+    while (child != null) {
+      // Height and baseline is irrelevant as all text will be laid
+      // out in a single line.
+      placeholderDimensions[childIndex] = PlaceholderDimensions(
+        size: Size(child.getMaxIntrinsicWidth(height), height),
+        alignment: _placeholderSpans[childIndex].alignment,
+        baseline: _placeholderSpans[childIndex].baseline,
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+    _textPainter.setPlaceholderDimensions(placeholderDimensions);
+  }
+
+  void _computeChildrenWidthWithMinIntrinsics(double height) {
+    RenderBox child = firstChild;
+    final List<PlaceholderDimensions> placeholderDimensions = List<PlaceholderDimensions>(childCount);
+    int childIndex = 0;
+    while (child != null) {
+      final double intrinsicWidth = child.getMinIntrinsicWidth(height);
+      final double intrinsicHeight = child.getMinIntrinsicHeight(intrinsicWidth);
+      placeholderDimensions[childIndex] = PlaceholderDimensions(
+        size: Size(intrinsicWidth, intrinsicHeight),
+        alignment: _placeholderSpans[childIndex].alignment,
+        baseline: _placeholderSpans[childIndex].baseline,
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+    _textPainter.setPlaceholderDimensions(placeholderDimensions);
+  }
+
+  void _computeChildrenHeightWithMinIntrinsics(double width) {
+    RenderBox child = firstChild;
+    final List<PlaceholderDimensions> placeholderDimensions = List<PlaceholderDimensions>(childCount);
+    int childIndex = 0;
+    while (child != null) {
+      final double intrinsicHeight = child.getMinIntrinsicHeight(width);
+      final double intrinsicWidth = child.getMinIntrinsicWidth(intrinsicHeight);
+      placeholderDimensions[childIndex] = PlaceholderDimensions(
+        size: Size(intrinsicWidth, intrinsicHeight),
+        alignment: _placeholderSpans[childIndex].alignment,
+        baseline: _placeholderSpans[childIndex].baseline,
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+    _textPainter.setPlaceholderDimensions(placeholderDimensions);
+  }
+
+  double _computeIntrinsicHeight(double width) {
+    if (!_canComputeIntrinsics()) {
+      return 0.0;
+    }
+    _computeChildrenHeightWithMinIntrinsics(width);
+    _layoutText(minWidth: width, maxWidth: width);
     return _preferredHeight(width);
   }
 
   @override
+  double computeMinIntrinsicHeight(double width) {
+    return _computeIntrinsicHeight(width);
+  }
+
+  @override
   double computeMaxIntrinsicHeight(double width) {
-    return _preferredHeight(width);
+    return _computeIntrinsicHeight(width);
   }
 
   @override
@@ -1675,7 +1822,8 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
 
   void _layoutText({ double minWidth = 0.0, double maxWidth = double.infinity }) {
     assert(maxWidth != null && minWidth != null);
-    if (_textLayoutLastMaxWidth == maxWidth && _textLayoutLastMinWidth == minWidth)
+    if (_textLayoutLastMaxWidth == maxWidth && _textLayoutLastMinWidth == minWidth
+        && _needRelayout)
       return;
     final double availableMaxWidth = math.max(0.0, maxWidth - _caretMargin);
     final double availableMinWidth = math.min(minWidth, availableMaxWidth);
@@ -1687,6 +1835,80 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
     );
     _textLayoutLastMinWidth = minWidth;
     _textLayoutLastMaxWidth = maxWidth;
+    _needRelayout = false;
+  }
+
+  // Placeholder dimensions representing the sizes of child inline widgets.
+  //
+  // These need to be cached because the text painter's placeholder dimensions
+  // will be overwritten during intrinsic width/height calculations and must be
+  // restored to the original values before final layout and painting.
+  List<PlaceholderDimensions> _placeholderDimensions;
+
+  void _layoutTextWithConstraints(BoxConstraints constraints) {
+    _textPainter.setPlaceholderDimensions(_placeholderDimensions);
+    _layoutText(minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+  }
+
+  // Layout the child inline widgets. We then pass the dimensions of the
+  // children to _textPainter so that appropriate placeholders can be inserted
+  // into the LibTxt layout. This does not do anything if no inline widgets were
+  // specified.
+  void _layoutChildren(BoxConstraints constraints) {
+    if (childCount == 0) {
+      return;
+    }
+    RenderBox child = firstChild;
+    _placeholderDimensions = List<PlaceholderDimensions>(childCount);
+    int childIndex = 0;
+    while (child != null) {
+      // Only constrain the width to the maximum width of the paragraph.
+      // Leave height unconstrained, which will overflow if expanded past.
+      child.layout(
+        BoxConstraints(
+          maxWidth: constraints.maxWidth,
+        ),
+        parentUsesSize: true,
+      );
+      double baselineOffset;
+      switch (_placeholderSpans[childIndex].alignment) {
+        case ui.PlaceholderAlignment.baseline: {
+          baselineOffset = child.getDistanceToBaseline(
+              _placeholderSpans[childIndex].baseline
+          );
+          break;
+        }
+        default: {
+          baselineOffset = null;
+          break;
+        }
+      }
+      _placeholderDimensions[childIndex] = PlaceholderDimensions(
+        size: child.size,
+        alignment: _placeholderSpans[childIndex].alignment,
+        baseline: _placeholderSpans[childIndex].baseline,
+        baselineOffset: baselineOffset,
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+  }
+
+  // Iterate through the laid-out children and set the parentData offsets based
+  // off of the placeholders inserted for each child.
+  void _setParentData() {
+    RenderBox child = firstChild;
+    int childIndex = 0;
+    while (child != null && childIndex < _textPainter.inlinePlaceholderBoxes.length) {
+      final TextParentData textParentData = child.parentData as TextParentData;
+      textParentData.offset = Offset(
+        _textPainter.inlinePlaceholderBoxes[childIndex].left,
+        _textPainter.inlinePlaceholderBoxes[childIndex].top,
+      );
+      textParentData.scale = _textPainter.inlinePlaceholderScales[childIndex];
+      child = childAfter(child);
+      childIndex += 1;
+    }
   }
 
   // TODO(garyq): This is no longer producing the highest-fidelity caret
@@ -1717,9 +1939,15 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
   @override
   void performLayout() {
     final BoxConstraints constraints = this.constraints;
-    _layoutText(minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+    _layoutChildren(constraints);
+    _layoutTextWithConstraints(constraints);
+    _setParentData();
+
     _caretPrototype = _getCaretPrototype;
     _selectionRects = null;
+
+    // todo 以下的代码需要再看一下用途
+
     // We grab _textPainter.size here because assigning to `size` on the next
     // line will trigger us to validate our intrinsic sizes, which will change
     // _textPainter's layout because the intrinsic size calculations are
@@ -1997,11 +2225,54 @@ class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMix
   }
   @override
   void paint(PaintingContext context, Offset offset) {
-    _layoutText(minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
-    if (_hasVisualOverflow)
-      context.pushClipRect(needsCompositing, offset, Offset.zero & size, _paintContents);
-    else
-      _paintContents(context, offset);
+//    _layoutText(minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+//    if (_hasVisualOverflow)
+//      context.pushClipRect(needsCompositing, offset, Offset.zero & size, _paintContents);
+//    else
+//      _paintContents(context, offset);
+//    _paintHandleLayers(context, getEndpointsForSelection(selection));
+
+    _layoutTextWithConstraints(constraints);
+
+    assert(() {
+      if (debugRepaintTextRainbowEnabled) {
+        final Paint paint = Paint()
+          ..color = debugCurrentRepaintColor.toColor();
+        context.canvas.drawRect(offset & size, paint);
+      }
+      return true;
+    }());
+
+    _textPainter.paint(context.canvas, offset);
+
+    RenderBox child = firstChild;
+    int childIndex = 0;
+    // childIndex might be out of index of placeholder boxes. This can happen
+    // if engine truncates children due to ellipsis. Sadly, we would not know
+    // it until we finish layout, and RenderObject is in immutable state at
+    // this point.
+    while (child != null && childIndex < _textPainter.inlinePlaceholderBoxes.length) {
+      final TextParentData textParentData = child.parentData as TextParentData;
+
+      final double scale = textParentData.scale;
+      context.pushTransform(
+        needsCompositing,
+        offset + textParentData.offset,
+        Matrix4.diagonal3Values(scale, scale, scale),
+            (PaintingContext context, Offset offset) {
+          context.paintChild(
+            child,
+            offset,
+          );
+        },
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+
+    // todo 以下的代码需要再看一下用途
+    // todo 删除了overflow相关的内容，因为我认为在编辑器里，不会出现显示不下的问题
+    _paintContents(context, offset);
     _paintHandleLayers(context, getEndpointsForSelection(selection));
   }
 

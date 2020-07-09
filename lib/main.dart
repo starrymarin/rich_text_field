@@ -81,6 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: RichTextField(
           controller: RichTextEditingController(),
+          maxLines: null,
         )
       ),
     );
@@ -88,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class RichTextEditingController extends TextEditingController {
+  WidgetSpan widgetSpan = WidgetSpan(child: Icon(Icons.access_alarm));
   @override
   TextSpan buildTextSpan({TextStyle style, bool withComposing}) {
     print(text);
@@ -99,7 +101,8 @@ class RichTextEditingController extends TextEditingController {
         return TextSpan(
           style: style,
           children: <InlineSpan>[
-            TextSpan(style: TextStyle(backgroundColor: Colors.green), text: text),
+            TextSpan(text: text),
+            widgetSpan
           ],
         );
       } else {
@@ -115,7 +118,8 @@ class RichTextEditingController extends TextEditingController {
     return TextSpan(
       style: style,
       children: <InlineSpan>[
-        TextSpan(style: TextStyle(backgroundColor: Colors.green), text: text),
+        TextSpan(text: text),
+        widgetSpan
       ],
     );
   }
