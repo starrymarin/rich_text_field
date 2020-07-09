@@ -12,6 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:rich_text_field/rich_editable.dart';
 import 'package:rich_text_field/rich_editable_text.dart';
 
 //import 'basic.dart';
@@ -41,7 +42,7 @@ enum _TextSelectionHandlePosition { start, end }
 /// of the [RenderBox] given by the [RichTextSelectionOverlay.renderObject].
 ///
 /// Used by [RichTextSelectionOverlay.onSelectionOverlayChanged].
-typedef TextSelectionOverlayChanged = void Function(TextEditingValue value, Rect caretRect);
+//typedef TextSelectionOverlayChanged = void Function(TextEditingValue value, Rect caretRect);
 
 /// Signature for when a pointer that's dragging to select text has moved again.
 ///
@@ -54,7 +55,7 @@ typedef TextSelectionOverlayChanged = void Function(TextEditingValue value, Rect
 /// This signature is different from [GestureDragUpdateCallback] to make it
 /// easier for various text fields to use [RichTextSelectionGestureDetector] without
 /// having to store the start position.
-typedef DragSelectionUpdateCallback = void Function(DragStartDetails startDetails, DragUpdateDetails updateDetails);
+//typedef DragSelectionUpdateCallback = void Function(DragStartDetails startDetails, DragUpdateDetails updateDetails);
 
 /// An interface for building the selection UI, to be provided by the
 /// implementor of the toolbar widget.
@@ -79,7 +80,7 @@ abstract class RichTextSelectionControls {
   /// [globalEditableRegion] is the TextField size of the global coordinate system
   /// in logical pixels.
   ///
-  /// [textLineHeight] is the `preferredLineHeight` of the [RenderEditable] we
+  /// [textLineHeight] is the `preferredLineHeight` of the [RichRenderEditable] we
   /// are building a toolbar for.
   ///
   /// The [position] is a general calculation midpoint parameter of the toolbar.
@@ -286,7 +287,7 @@ class RichTextSelectionOverlay {
   // TODO(mpcomplete): what if the renderObject is removed or replaced, or
   // moves? Not sure what cases I need to handle, or how to handle them.
   /// The editable line in which the selected text is being displayed.
-  final RenderEditable renderObject;
+  final RichRenderEditable renderObject;
 
   /// Builds text selection handles and toolbar.
   final RichTextSelectionControls selectionControls;
@@ -570,7 +571,7 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
   final _TextSelectionHandlePosition position;
   final LayerLink startHandleLayerLink;
   final LayerLink endHandleLayerLink;
-  final RenderEditable renderObject;
+  final RichRenderEditable renderObject;
   final ValueChanged<TextSelection> onSelectionHandleChanged;
   final VoidCallback onSelectionHandleTapped;
   final RichTextSelectionControls selectionControls;
@@ -855,11 +856,11 @@ class RichTextSelectionGestureDetectorBuilder {
   /// The [RenderObject] of the [EditableText] for which the builder will
   /// provide a [RichTextSelectionGestureDetector].
   @protected
-  RenderEditable get renderEditable => editableText.renderEditable;
+  RichRenderEditable get renderEditable => editableText.renderEditable;
 
   /// Handler for [RichTextSelectionGestureDetector.onTapDown].
   ///
-  /// By default, it forwards the tap to [RenderEditable.handleTapDown] and sets
+  /// By default, it forwards the tap to [RichRenderEditable.handleTapDown] and sets
   /// [shouldShowSelectionToolbar] to true if the tap was initiated by a finger or stylus.
   ///
   /// See also:

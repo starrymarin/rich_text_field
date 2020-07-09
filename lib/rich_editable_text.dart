@@ -14,6 +14,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/widgets.dart';
+import 'package:rich_text_field/rich_editable.dart';
+
+import 'rich_text_selection.dart';
 
 //import 'automatic_keep_alive.dart';
 //import 'basic.dart';
@@ -36,7 +39,7 @@ export 'package:flutter/rendering.dart' show SelectionChangedCause;
 
 /// Signature for the callback that reports when the user changes the selection
 /// (including the cursor location).
-typedef SelectionChangedCallback = void Function(TextSelection selection, SelectionChangedCause cause);
+//typedef SelectionChangedCallback = void Function(TextSelection selection, SelectionChangedCause cause);
 
 // The time it takes for the cursor to fade from fully opaque to fully
 // transparent and vice versa. A full cursor blink, from transparent to opaque
@@ -99,8 +102,8 @@ const int _kObscureShowLatestCharCursorTicks = 3;
 /// [rendererIgnoresPointer] is false (false by default). To tightly conform
 /// to the platform behavior with respect to input gestures in text fields, use
 /// [TextField] or [CupertinoTextField]. For custom selection behavior, call
-/// methods such as [RenderEditable.selectPosition],
-/// [RenderEditable.selectWord], etc. programmatically.
+/// methods such as [RichRenderEditable.selectPosition],
+/// [RichRenderEditable.selectWord], etc. programmatically.
 ///
 /// See also:
 ///
@@ -402,7 +405,7 @@ class RichEditableText extends StatefulWidget {
   /// It's rarely necessary to set this property. By default its value
   /// is inherited from the enclosing app with `Localizations.localeOf(context)`.
   ///
-  /// See [RenderEditable.locale] for more information.
+  /// See [RichRenderEditable.locale] for more information.
   final Locale locale;
 
   /// The number of font pixels for each logical pixel.
@@ -538,7 +541,7 @@ class RichEditableText extends StatefulWidget {
   ///  * [TextField], a Material Design themed wrapper of [RichEditableText], which
   ///    shows the selection toolbar upon appropriate user events based on the
   ///    user's platform set in [ThemeData.platform].
-  final TextSelectionControls selectionControls;
+  final RichTextSelectionControls selectionControls;
 
   /// {@template flutter.widgets.editableText.keyboardType}
   /// The type of keyboard to use for editing the text.
@@ -725,8 +728,8 @@ class RichEditableText extends StatefulWidget {
   /// {@endtemplate}
   final List<TextInputFormatter> inputFormatters;
 
-  /// If true, the [RenderEditable] created by this widget will not handle
-  /// pointer events, see [renderEditable] and [RenderEditable.ignorePointer].
+  /// If true, the [RichRenderEditable] created by this widget will not handle
+  /// pointer events, see [renderEditable] and [RichRenderEditable.ignorePointer].
   ///
   /// This property is false by default.
   final bool rendererIgnoresPointer;
@@ -874,7 +877,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
   final GlobalKey _editableKey = GlobalKey();
 
   TextInputConnection _textInputConnection;
-  TextSelectionOverlay _selectionOverlay;
+  RichTextSelectionOverlay _selectionOverlay;
 
   ScrollController _scrollController;
 
@@ -1313,7 +1316,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     }
   }
 
-  void _handleSelectionChanged(TextSelection selection, RenderEditable renderObject, SelectionChangedCause cause) {
+  void _handleSelectionChanged(TextSelection selection, RichRenderEditable renderObject, SelectionChangedCause cause) {
     // We return early if the selection is not valid. This can happen when the
     // text of [EditableText] is updated at the same time as the selection is
     // changed by a gesture event.
@@ -1330,7 +1333,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     _selectionOverlay = null;
 
     if (widget.selectionControls != null) {
-      _selectionOverlay = TextSelectionOverlay(
+      _selectionOverlay = RichTextSelectionOverlay(
         context: context,
         value: _value,
         debugRequiredFor: widget,
@@ -1486,7 +1489,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
 
   /// The current status of the text selection handles.
   @visibleForTesting
-  TextSelectionOverlay get selectionOverlay => _selectionOverlay;
+  RichTextSelectionOverlay get selectionOverlay => _selectionOverlay;
 
   int _obscureShowCharTicksPending = 0;
   int _obscureLatestCharIndex;
@@ -1559,7 +1562,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     _startOrStopCursorTimerIfNeeded();
     _updateOrDisposeSelectionOverlayIfNeeded();
     _textChangedSinceLastCaretUpdate = true;
-    // TODO(abarth): Teach RenderEditable about ValueNotifier<TextEditingValue>
+    // TODO(abarth): Teach RichRenderEditable about ValueNotifier<TextEditingValue>
     // to avoid this setState().
     setState(() { /* We use widget.controller.value in build(). */ });
   }
@@ -1604,8 +1607,8 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
   /// The renderer for this widget's [Editable] descendant.
   ///
   /// This property is typically used to notify the renderer of input gestures
-  /// when [ignorePointer] is true. See [RenderEditable.ignorePointer].
-  RenderEditable get renderEditable => _editableKey.currentContext.findRenderObject() as RenderEditable;
+  /// when [ignorePointer] is true. See [RichRenderEditable.ignorePointer].
+  RichRenderEditable get renderEditable => _editableKey.currentContext.findRenderObject() as RichRenderEditable;
 
   @override
   TextEditingValue get textEditingValue => _value;
@@ -1659,19 +1662,19 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     }
   }
 
-  VoidCallback _semanticsOnCopy(TextSelectionControls controls) {
+  VoidCallback _semanticsOnCopy(RichTextSelectionControls controls) {
     return widget.selectionEnabled && copyEnabled && _hasFocus && controls?.canCopy(this) == true
         ? () => controls.handleCopy(this)
         : null;
   }
 
-  VoidCallback _semanticsOnCut(TextSelectionControls controls) {
+  VoidCallback _semanticsOnCut(RichTextSelectionControls controls) {
     return widget.selectionEnabled && cutEnabled && _hasFocus && controls?.canCut(this) == true
         ? () => controls.handleCut(this)
         : null;
   }
 
-  VoidCallback _semanticsOnPaste(TextSelectionControls controls) {
+  VoidCallback _semanticsOnPaste(RichTextSelectionControls controls) {
     return widget.selectionEnabled && pasteEnabled &&_hasFocus && controls?.canPaste(this) == true
         ? () => controls.handlePaste(this)
         : null;
@@ -1683,7 +1686,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     _focusAttachment.reparent();
     super.build(context); // See AutomaticKeepAliveClientMixin.
 
-    final TextSelectionControls controls = widget.selectionControls;
+    final RichTextSelectionControls controls = widget.selectionControls;
     return Scrollable(
       excludeFromSemantics: true,
       axisDirection: _isMultiline ? AxisDirection.down : AxisDirection.right,
@@ -1753,7 +1756,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
   TextSpan buildTextSpan() {
     if (widget.obscureText) {
       String text = _value.text;
-      text = RenderEditable.obscuringCharacter * text.length;
+      text = RichRenderEditable.obscuringCharacter * text.length;
       final int o =
       _obscureShowCharTicksPending > 0 ? _obscureLatestCharIndex : null;
       if (o != null && o >= 0 && o < text.length)
@@ -1839,8 +1842,8 @@ class _Editable extends MultiChildRenderObjectWidget {
   final SmartQuotesType smartQuotesType;
   final bool enableSuggestions;
   final ViewportOffset offset;
-  final SelectionChangedHandler onSelectionChanged;
-  final CaretChangedHandler onCaretChanged;
+  final RichSelectionChangedHandler onSelectionChanged;
+  final RichCaretChangedHandler onCaretChanged;
   final bool rendererIgnoresPointer;
   final double cursorWidth;
   final Radius cursorRadius;
@@ -1866,8 +1869,8 @@ class _Editable extends MultiChildRenderObjectWidget {
   }
 
   @override
-  RenderEditable createRenderObject(BuildContext context) {
-    return RenderEditable(
+  RichRenderEditable createRenderObject(BuildContext context) {
+    return RichRenderEditable(
       text: textSpan,
       cursorColor: cursorColor,
       startHandleLayerLink: startHandleLayerLink,
@@ -1906,7 +1909,7 @@ class _Editable extends MultiChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, RenderEditable renderObject) {
+  void updateRenderObject(BuildContext context, RichRenderEditable renderObject) {
     renderObject
       ..text = textSpan
       ..cursorColor = cursorColor

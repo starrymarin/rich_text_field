@@ -30,74 +30,43 @@ const double _kFloatingCaretRadius = 1.0;
 /// Signature for the callback that reports when the user changes the selection
 /// (including the cursor location).
 ///
-/// Used by [RenderEditable.onSelectionChanged].
-typedef SelectionChangedHandler = void Function(TextSelection selection, RenderEditable renderObject, SelectionChangedCause cause);
-
-/// Indicates what triggered the change in selected text (including changes to
-/// the cursor location).
-enum SelectionChangedCause {
-  /// The user tapped on the text and that caused the selection (or the location
-  /// of the cursor) to change.
-  tap,
-
-  /// The user tapped twice in quick succession on the text and that caused
-  /// the selection (or the location of the cursor) to change.
-  doubleTap,
-
-  /// The user long-pressed the text and that caused the selection (or the
-  /// location of the cursor) to change.
-  longPress,
-
-  /// The user force-pressed the text and that caused the selection (or the
-  /// location of the cursor) to change.
-  forcePress,
-
-  /// The user used the keyboard to change the selection or the location of the
-  /// cursor.
-  ///
-  /// Keyboard-triggered selection changes may be caused by the IME as well as
-  /// by accessibility tools (e.g. TalkBack on Android).
-  keyboard,
-
-  /// The user used the mouse to change the selection by dragging over a piece
-  /// of text.
-  drag,
-}
+/// Used by [RichRenderEditable.onSelectionChanged].
+typedef RichSelectionChangedHandler = void Function(TextSelection selection, RichRenderEditable renderObject, SelectionChangedCause cause);
 
 /// Signature for the callback that reports when the caret location changes.
 ///
-/// Used by [RenderEditable.onCaretChanged].
-typedef CaretChangedHandler = void Function(Rect caretRect);
+/// Used by [RichRenderEditable.onCaretChanged].
+typedef RichCaretChangedHandler = void Function(Rect caretRect);
 
 /// Represents the coordinates of the point in a selection, and the text
-/// direction at that point, relative to top left of the [RenderEditable] that
+/// direction at that point, relative to top left of the [RichRenderEditable] that
 /// holds the selection.
 @immutable
-class TextSelectionPoint {
-  /// Creates a description of a point in a text selection.
-  ///
-  /// The [point] argument must not be null.
-  const TextSelectionPoint(this.point, this.direction)
-      : assert(point != null);
-
-  /// Coordinates of the lower left or lower right corner of the selection,
-  /// relative to the top left of the [RenderEditable] object.
-  final Offset point;
-
-  /// Direction of the text at this edge of the selection.
-  final TextDirection direction;
-
-  @override
-  String toString() {
-    switch (direction) {
-      case TextDirection.ltr:
-        return '$point-ltr';
-      case TextDirection.rtl:
-        return '$point-rtl';
-    }
-    return '$point';
-  }
-}
+//class TextSelectionPoint {
+//  /// Creates a description of a point in a text selection.
+//  ///
+//  /// The [point] argument must not be null.
+//  const TextSelectionPoint(this.point, this.direction)
+//      : assert(point != null);
+//
+//  /// Coordinates of the lower left or lower right corner of the selection,
+//  /// relative to the top left of the [RichRenderEditable] object.
+//  final Offset point;
+//
+//  /// Direction of the text at this edge of the selection.
+//  final TextDirection direction;
+//
+//  @override
+//  String toString() {
+//    switch (direction) {
+//      case TextDirection.ltr:
+//        return '$point-ltr';
+//      case TextDirection.rtl:
+//        return '$point-rtl';
+//    }
+//    return '$point';
+//  }
+//}
 
 // Check if the given code unit is a white space or separator
 // character.
@@ -164,7 +133,7 @@ bool _isWhitespace(int codeUnit) {
 /// Keyboard handling, IME handling, scrolling, toggling the [showCursor] value
 /// to actually blink the cursor, and other features not mentioned above are the
 /// responsibility of higher layers and not handled by this object.
-class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
+class RichRenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   /// Creates a render object that implements the visual aspects of a text field.
   ///
   /// The [textAlign] argument must not be null. It defaults to [TextAlign.start].
@@ -179,7 +148,7 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   ///
   /// The [offset] is required and must not be null. You can use [new
   /// ViewportOffset.zero] if you have no need for scrolling.
-  RenderEditable({
+  RichRenderEditable({
     TextSpan text,
     @required TextDirection textDirection,
     TextAlign textAlign = TextAlign.start,
@@ -286,13 +255,13 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   /// Called when the selection changes.
   ///
   /// If this is null, then selection changes will be ignored.
-  SelectionChangedHandler onSelectionChanged;
+  RichSelectionChangedHandler onSelectionChanged;
 
   double _textLayoutLastMaxWidth;
   double _textLayoutLastMinWidth;
 
   /// Called during the paint phase when the caret location changes.
-  CaretChangedHandler onCaretChanged;
+  RichCaretChangedHandler onCaretChanged;
 
   /// If true [handleEvent] does nothing and it's assumed that this
   /// renderer will be notified of input gestures via [handleTapDown],
@@ -1061,7 +1030,7 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// The [LayerLink] of start selection handle.
   ///
-  /// [RenderEditable] is responsible for calculating the [Offset] of this
+  /// [RichRenderEditable] is responsible for calculating the [Offset] of this
   /// [LayerLink], which will be used as [CompositedTransformTarget] of start handle.
   LayerLink get startHandleLayerLink => _startHandleLayerLink;
   LayerLink _startHandleLayerLink;
@@ -1074,7 +1043,7 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// The [LayerLink] of end selection handle.
   ///
-  /// [RenderEditable] is responsible for calculating the [Offset] of this
+  /// [RichRenderEditable] is responsible for calculating the [Offset] of this
   /// [LayerLink], which will be used as [CompositedTransformTarget] of end handle.
   LayerLink get endHandleLayerLink => _endHandleLayerLink;
   LayerLink _endHandleLayerLink;

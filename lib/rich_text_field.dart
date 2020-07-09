@@ -14,6 +14,9 @@ import 'package:flutter/gestures.dart';
 import 'package:rich_text_field/rich_editable_text.dart';
 import 'package:rich_text_field/rich_text_selection.dart';
 
+import 'cupertino/text_selection.dart';
+import 'material/text_selection.dart';
+
 //import 'debug.dart';
 //import 'feedback.dart';
 //import 'input_decorator.dart';
@@ -26,17 +29,17 @@ import 'package:rich_text_field/rich_text_selection.dart';
 export 'package:flutter/services.dart' show TextInputType, TextInputAction, TextCapitalization, SmartQuotesType, SmartDashesType;
 
 /// Signature for the [RichTextField.buildCounter] callback.
-typedef InputCounterWidgetBuilder = Widget Function(
-    /// The build context for the TextField
-    BuildContext context, {
-      /// The length of the string currently in the input.
-      @required int currentLength,
-      /// The maximum string length that can be entered into the TextField.
-      @required int maxLength,
-      /// Whether or not the TextField is currently focused.  Mainly provided for
-      /// the [liveRegion] parameter in the [Semantics] widget for accessibility.
-      @required bool isFocused,
-    });
+//typedef InputCounterWidgetBuilder = Widget Function(
+//    /// The build context for the TextField
+//    BuildContext context, {
+//      /// The length of the string currently in the input.
+//      @required int currentLength,
+//      /// The maximum string length that can be entered into the TextField.
+//      @required int maxLength,
+//      /// Whether or not the TextField is currently focused.  Mainly provided for
+//      /// the [liveRegion] parameter in the [Semantics] widget for accessibility.
+//      @required bool isFocused,
+//    });
 
 class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGestureDetectorBuilder {
   _TextFieldSelectionGestureDetectorBuilder({
@@ -432,7 +435,7 @@ class RichTextField extends StatefulWidget {
   /// cause the focus to change, and will not make the keyboard visible.
   ///
   /// This widget builds an [EditableText] and will ensure that the keyboard is
-  /// showing when it is tapped by calling [EditableTextState.requestKeyboard()].
+  /// showing when it is tapped by calling [RichEditableTextState.requestKeyboard()].
   final FocusNode focusNode;
 
   /// The decoration to show around the text field.
@@ -970,7 +973,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
     if (widget.maxLength != null && widget.maxLengthEnforced)
       formatters.add(LengthLimitingTextInputFormatter(widget.maxLength));
 
-    TextSelectionControls textSelectionControls;
+    RichTextSelectionControls textSelectionControls;
     bool paintCursorAboveText;
     bool cursorOpacityAnimates;
     Offset cursorOffset;
@@ -981,7 +984,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
         forcePressEnabled = true;
-        textSelectionControls = cupertinoTextSelectionControls;
+        textSelectionControls = richCupertinoTextSelectionControls;
         paintCursorAboveText = true;
         cursorOpacityAnimates = true;
         cursorColor ??= CupertinoTheme.of(context).primaryColor;
@@ -994,7 +997,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
       case TargetPlatform.linux:
       case TargetPlatform.windows:
         forcePressEnabled = false;
-        textSelectionControls = materialTextSelectionControls;
+        textSelectionControls = richMaterialTextSelectionControls;
         paintCursorAboveText = false;
         cursorOpacityAnimates = false;
         cursorColor ??= themeData.cursorColor;
