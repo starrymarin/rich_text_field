@@ -78,11 +78,21 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        child: RichTextField(
-          controller: RichTextEditingController(),
-          maxLines: null,
-        )
+      body: Column(
+        children: <Widget>[
+          RichTextField(
+            controller: RichTextEditingController(),
+            maxLines: null,
+          ),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(style: TextStyle(color: Colors.black), text: "good\n"),
+                WidgetSpan(child: Icon(Icons.access_alarm))
+              ]
+            ),
+          )
+        ],
       ),
     );
   }
