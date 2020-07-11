@@ -78,16 +78,23 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Column(
-        children: <Widget>[
+      body: Center(
+        child: RichTextField(
+          style: TextStyle(textBaseline: TextBaseline.ideographic),
+          controller: RichTextEditingController(),
+          maxLines: null,
+        ),
+      )
+//      body: Column(
+//        children: <Widget>[
 //          TextField(
 //            maxLines: null,
 //          )
-          RichTextField(
-            style: TextStyle(textBaseline: TextBaseline.ideographic),
-            controller: RichTextEditingController(),
-            maxLines: null,
-          ),
+//          RichTextField(
+//            style: TextStyle(textBaseline: TextBaseline.ideographic),
+//            controller: RichTextEditingController(),
+//            maxLines: null,
+//          ),
 //          RichText(
 //            text: TextSpan(
 //              children: [
@@ -104,8 +111,8 @@ class _MyHomePageState extends State<MyHomePage> {
 //              ]
 //            ),
 //          )
-        ],
-      ),
+//        ],
+//      ),
     );
   }
 }
@@ -114,15 +121,11 @@ class RichTextEditingController extends TextEditingController {
   WidgetSpan widgetSpan = WidgetSpan(child: Icon(Icons.access_alarm));
   @override
   TextSpan buildTextSpan({TextStyle style, bool withComposing}) {
-    print(text);
-    print(value);
-
     final TextStyle composingStyle = style.merge(
       const TextStyle(textBaseline: TextBaseline.ideographic),
     );
 
     if (!value.composing.isValid || !withComposing) {
-      print("111");
       if (text.length != 0) {
         return TextSpan(
           style: style,
@@ -146,7 +149,6 @@ class RichTextEditingController extends TextEditingController {
       }
     }
 
-    print("222");
     return TextSpan(
       style: style,
       children: <InlineSpan>[
