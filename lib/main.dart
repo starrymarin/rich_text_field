@@ -80,18 +80,30 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: <Widget>[
+//          TextField(
+//            maxLines: null,
+//          )
           RichTextField(
+            style: TextStyle(textBaseline: TextBaseline.ideographic),
             controller: RichTextEditingController(),
             maxLines: null,
           ),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(style: TextStyle(color: Colors.black), text: "good\n"),
-                WidgetSpan(child: Icon(Icons.access_alarm))
-              ]
-            ),
-          )
+//          RichText(
+//            text: TextSpan(
+//              children: [
+//                TextSpan(style: TextStyle(color: Colors.black), text: "good"),
+//                WidgetSpan(child: Icon(Icons.access_alarm)),
+//                TextSpan(style: TextStyle(color: Colors.black), text: "66666666666666\n6666666666"),
+//                WidgetSpan(
+//                  child: SizedBox(
+//                    width: 120,
+//                    height: 120,
+//                    child: Icon(Icons.style),
+//                  )
+//                )
+//              ]
+//            ),
+//          )
         ],
       ),
     );
@@ -105,6 +117,10 @@ class RichTextEditingController extends TextEditingController {
     print(text);
     print(value);
 
+    final TextStyle composingStyle = style.merge(
+      const TextStyle(textBaseline: TextBaseline.ideographic),
+    );
+
     if (!value.composing.isValid || !withComposing) {
       print("111");
       if (text.length != 0) {
@@ -112,7 +128,15 @@ class RichTextEditingController extends TextEditingController {
           style: style,
           children: <InlineSpan>[
             TextSpan(text: text),
-            widgetSpan
+            widgetSpan,
+            TextSpan(style: TextStyle(color: Colors.black), text: "66666666666666\n6666666666"),
+            WidgetSpan(
+                child: SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: Icon(Icons.style),
+                )
+            )
           ],
         );
       } else {
@@ -121,15 +145,21 @@ class RichTextEditingController extends TextEditingController {
         );
       }
     }
-    final TextStyle composingStyle = style.merge(
-      const TextStyle(decoration: TextDecoration.underline),
-    );
+
     print("222");
     return TextSpan(
       style: style,
       children: <InlineSpan>[
         TextSpan(text: text),
-        widgetSpan
+        widgetSpan,
+        TextSpan(style: TextStyle(color: Colors.black), text: "66666666666666\n6666666666"),
+        WidgetSpan(
+            child: SizedBox(
+              width: 120,
+              height: 120,
+              child: Icon(Icons.style),
+            )
+        )
       ],
     );
   }

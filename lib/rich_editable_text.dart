@@ -348,7 +348,7 @@ class RichEditableText extends StatefulWidget {
   /// [TextStyle] instead. See [StrutStyle.inheritFromTextStyle].
   StrutStyle get strutStyle {
     if (_strutStyle == null) {
-      return style != null ? StrutStyle.fromTextStyle(style, forceStrutHeight: true) : const StrutStyle();
+      return style != null ? StrutStyle.fromTextStyle(style) : const StrutStyle();
     }
     return _strutStyle.inheritFromTextStyle(style);
   }

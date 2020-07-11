@@ -755,6 +755,8 @@ class RichRenderEditable extends RenderBox with
     span.visitChildren((InlineSpan span) {
       if (span is PlaceholderSpan) {
         final PlaceholderSpan placeholderSpan = span;
+        print("placeholderSpan in richEditable: $placeholderSpan");
+        print("baseline in richEditable: ${placeholderSpan.baseline}");
         _placeholderSpans.add(placeholderSpan);
       }
       return true;
@@ -1543,6 +1545,8 @@ class RichRenderEditable extends RenderBox with
     while (child != null) {
       // Height and baseline is irrelevant as all text will be laid
       // out in a single line.
+      print("_computeChildrenWidthWithMaxIntrinsics alignment: ${_placeholderSpans[childIndex].alignment}");
+      print("_computeChildrenWidthWithMaxIntrinsics baseline: ${_placeholderSpans[childIndex].baseline}");
       placeholderDimensions[childIndex] = PlaceholderDimensions(
         size: Size(child.getMaxIntrinsicWidth(height), height),
         alignment: _placeholderSpans[childIndex].alignment,
@@ -1561,6 +1565,8 @@ class RichRenderEditable extends RenderBox with
     while (child != null) {
       final double intrinsicWidth = child.getMinIntrinsicWidth(height);
       final double intrinsicHeight = child.getMinIntrinsicHeight(intrinsicWidth);
+      print("_computeChildrenWidthWithMinIntrinsics alignment: ${_placeholderSpans[childIndex].alignment}");
+      print("_computeChildrenWidthWithMinIntrinsics baseline: ${_placeholderSpans[childIndex].baseline}");
       placeholderDimensions[childIndex] = PlaceholderDimensions(
         size: Size(intrinsicWidth, intrinsicHeight),
         alignment: _placeholderSpans[childIndex].alignment,
@@ -1579,6 +1585,8 @@ class RichRenderEditable extends RenderBox with
     while (child != null) {
       final double intrinsicHeight = child.getMinIntrinsicHeight(width);
       final double intrinsicWidth = child.getMinIntrinsicWidth(intrinsicHeight);
+      print("_computeChildrenHeightWithMinIntrinsics alignment: ${_placeholderSpans[childIndex].alignment}");
+      print("_computeChildrenHeightWithMinIntrinsics baseline: ${_placeholderSpans[childIndex].baseline}");
       placeholderDimensions[childIndex] = PlaceholderDimensions(
         size: Size(intrinsicWidth, intrinsicHeight),
         alignment: _placeholderSpans[childIndex].alignment,
@@ -1601,17 +1609,21 @@ class RichRenderEditable extends RenderBox with
 
   @override
   double computeMinIntrinsicHeight(double width) {
-    return _computeIntrinsicHeight(width);
+    double height = _computeIntrinsicHeight(width);
+    print("computeMinIntrinsicHeight: $height");
+    return height;
   }
 
   @override
   double computeMaxIntrinsicHeight(double width) {
-    return _computeIntrinsicHeight(width);
+    double height = _computeIntrinsicHeight(width);
+    print("computeMaxIntrinsicHeight: $height");
+    return height;
   }
 
   @override
   double computeDistanceToActualBaseline(TextBaseline baseline) {
-    _layoutText(minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+    _layoutTextWithConstraints(constraints);
     return _textPainter.computeDistanceToActualBaseline(baseline);
   }
 
@@ -1823,8 +1835,9 @@ class RichRenderEditable extends RenderBox with
   void _layoutText({ double minWidth = 0.0, double maxWidth = double.infinity }) {
     assert(maxWidth != null && minWidth != null);
     if (_textLayoutLastMaxWidth == maxWidth && _textLayoutLastMinWidth == minWidth
-        && _needRelayout)
+        && !_needRelayout)
       return;
+    print("_layoutText");
     final double availableMaxWidth = math.max(0.0, maxWidth - _caretMargin);
     final double availableMinWidth = math.min(minWidth, availableMaxWidth);
     final double textMaxWidth = _isMultiline ? availableMaxWidth : double.infinity;
@@ -1883,6 +1896,8 @@ class RichRenderEditable extends RenderBox with
           break;
         }
       }
+      print("_layoutChildren alignment: ${_placeholderSpans[childIndex].alignment}");
+      print("_layoutChildren baseline: ${_placeholderSpans[childIndex].baseline}");
       _placeholderDimensions[childIndex] = PlaceholderDimensions(
         size: child.size,
         alignment: _placeholderSpans[childIndex].alignment,
@@ -1905,6 +1920,7 @@ class RichRenderEditable extends RenderBox with
         _textPainter.inlinePlaceholderBoxes[childIndex].left,
         _textPainter.inlinePlaceholderBoxes[childIndex].top,
       );
+      print("parentData offset: ${textParentData.offset}");
       textParentData.scale = _textPainter.inlinePlaceholderScales[childIndex];
       child = childAfter(child);
       childIndex += 1;
@@ -1959,7 +1975,7 @@ class RichRenderEditable extends RenderBox with
     final Size textPainterSize = _textPainter.size;
     final double width = forceLine ? constraints.maxWidth : constraints
         .constrainWidth(_textPainter.size.width + _caretMargin);
-    size = Size(width, constraints.constrainHeight(_preferredHeight(constraints.maxWidth)));
+    size = Size(width, constraints.constrainHeight(textPainterSize.height));
     final Size contentSize = Size(textPainterSize.width + _caretMargin, textPainterSize.height);
     _maxScrollExtent = _getMaxScrollExtent(contentSize);
     offset.applyViewportDimension(_viewportExtent);
