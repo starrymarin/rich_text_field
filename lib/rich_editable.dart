@@ -2160,6 +2160,44 @@ class RichRenderEditable extends RenderBox with
       canvas.drawRect(box.toRect().shift(effectiveOffset), paint);
   }
 
+  void _paintText(PaintingContext context, Offset offset) {
+    assert(() {
+      if (debugRepaintTextRainbowEnabled) {
+        final Paint paint = Paint()
+          ..color = debugCurrentRepaintColor.toColor();
+        context.canvas.drawRect(offset & size, paint);
+      }
+      return true;
+    }());
+
+    _textPainter.paint(context.canvas, offset);
+
+    RenderBox child = firstChild;
+    int childIndex = 0;
+    // childIndex might be out of index of placeholder boxes. This can happen
+    // if engine truncates children due to ellipsis. Sadly, we would not know
+    // it until we finish layout, and RenderObject is in immutable state at
+    // this point.
+    while (child != null && childIndex < _textPainter.inlinePlaceholderBoxes.length) {
+      final TextParentData textParentData = child.parentData as TextParentData;
+
+      final double scale = textParentData.scale;
+      context.pushTransform(
+        needsCompositing,
+        offset + textParentData.offset,
+        Matrix4.diagonal3Values(scale, scale, scale),
+            (PaintingContext context, Offset offset) {
+          context.paintChild(
+            child,
+            offset,
+          );
+        },
+      );
+      child = childAfter(child);
+      childIndex += 1;
+    }
+  }
+
   void _paintContents(PaintingContext context, Offset offset) {
     assert(_textLayoutLastMaxWidth == constraints.maxWidth &&
         _textLayoutLastMinWidth == constraints.minWidth,
@@ -2185,13 +2223,13 @@ class RichRenderEditable extends RenderBox with
     // On iOS, the cursor is painted over the text, on Android, it's painted
     // under it.
     if (paintCursorAboveText)
-      _textPainter.paint(context.canvas, effectiveOffset);
+      _paintText(context, effectiveOffset);
 
     if (showCaret)
       _paintCaret(context.canvas, effectiveOffset, _selection.extent);
 
     if (!paintCursorAboveText)
-      _textPainter.paint(context.canvas, effectiveOffset);
+      _paintText(context, effectiveOffset);
 
     if (_floatingCursorOn) {
       if (_resetFloatingCursorAnimationValue == null)
@@ -2235,45 +2273,12 @@ class RichRenderEditable extends RenderBox with
 
     _layoutTextWithConstraints(constraints);
 
-    assert(() {
-      if (debugRepaintTextRainbowEnabled) {
-        final Paint paint = Paint()
-          ..color = debugCurrentRepaintColor.toColor();
-        context.canvas.drawRect(offset & size, paint);
-      }
-      return true;
-    }());
-
-    _textPainter.paint(context.canvas, offset);
-
-    RenderBox child = firstChild;
-    int childIndex = 0;
-    // childIndex might be out of index of placeholder boxes. This can happen
-    // if engine truncates children due to ellipsis. Sadly, we would not know
-    // it until we finish layout, and RenderObject is in immutable state at
-    // this point.
-    while (child != null && childIndex < _textPainter.inlinePlaceholderBoxes.length) {
-      final TextParentData textParentData = child.parentData as TextParentData;
-
-      final double scale = textParentData.scale;
-      context.pushTransform(
-        needsCompositing,
-        offset + textParentData.offset,
-        Matrix4.diagonal3Values(scale, scale, scale),
-            (PaintingContext context, Offset offset) {
-          context.paintChild(
-            child,
-            offset,
-          );
-        },
-      );
-      child = childAfter(child);
-      childIndex += 1;
-    }
+    if (_hasVisualOverflow)
+      context.pushClipRect(needsCompositing, offset, Offset.zero & size, _paintContents);
+    else
+      _paintContents(context, offset);
 
     // todo 以下的代码需要再看一下用途
-    // todo 删除了overflow相关的内容，因为我认为在编辑器里，不会出现显示不下的问题
-    _paintContents(context, offset);
     _paintHandleLayers(context, getEndpointsForSelection(selection));
   }
 

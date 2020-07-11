@@ -78,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Container(
         child: RichTextField(
           style: TextStyle(textBaseline: TextBaseline.ideographic),
           controller: RichTextEditingController(),
