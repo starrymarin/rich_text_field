@@ -1947,8 +1947,6 @@ class RichRenderEditable extends RenderBox with
     _caretPrototype = _getCaretPrototype;
     _selectionRects = null;
 
-    // todo 以下的代码需要再看一下用途
-
     // We grab _textPainter.size here because assigning to `size` on the next
     // line will trigger us to validate our intrinsic sizes, which will change
     // _textPainter's layout because the intrinsic size calculations are

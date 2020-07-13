@@ -51,68 +51,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  RichTextField richTextField = RichTextField(
+    controller: RichTextEditingController(),
+    maxLines: null,
+  );
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Container(
-        child: RichTextField(
-          style: TextStyle(textBaseline: TextBaseline.ideographic),
-          controller: RichTextEditingController(),
-          maxLines: null,
-        ),
+        child: richTextField,
       )
-//      body: Column(
-//        children: <Widget>[
-//          TextField(
-//            maxLines: null,
-//          )
-//          RichTextField(
-//            style: TextStyle(textBaseline: TextBaseline.ideographic),
-//            controller: RichTextEditingController(),
-//            maxLines: null,
-//          ),
-//          RichText(
-//            text: TextSpan(
-//              children: [
-//                TextSpan(style: TextStyle(color: Colors.black), text: "good"),
-//                WidgetSpan(child: Icon(Icons.access_alarm)),
-//                TextSpan(style: TextStyle(color: Colors.black), text: "66666666666666\n6666666666"),
-//                WidgetSpan(
-//                  child: SizedBox(
-//                    width: 120,
-//                    height: 120,
-//                    child: Icon(Icons.style),
-//                  )
-//                )
-//              ]
-//            ),
-//          )
-//        ],
-//      ),
     );
   }
 }
@@ -121,35 +73,7 @@ class RichTextEditingController extends TextEditingController {
   WidgetSpan widgetSpan = WidgetSpan(child: Icon(Icons.access_alarm));
   @override
   TextSpan buildTextSpan({TextStyle style, bool withComposing}) {
-    final TextStyle composingStyle = style.merge(
-      const TextStyle(textBaseline: TextBaseline.ideographic),
-    );
-
-    if (!value.composing.isValid || !withComposing) {
-      if (text.length != 0) {
-        return TextSpan(
-          style: style,
-          children: <InlineSpan>[
-            TextSpan(text: text),
-            widgetSpan,
-            TextSpan(style: TextStyle(color: Colors.black), text: "66666666666666\n6666666666"),
-            WidgetSpan(
-                child: SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: Icon(Icons.style),
-                )
-            )
-          ],
-        );
-      } else {
-        return TextSpan(
-            style: style, text: text
-        );
-      }
-    }
-
-    return TextSpan(
+    TextSpan textSpan = TextSpan(
       style: style,
       children: <InlineSpan>[
         TextSpan(text: text),
@@ -164,5 +88,17 @@ class RichTextEditingController extends TextEditingController {
         )
       ],
     );
+
+    if (!value.composing.isValid || !withComposing) {
+      if (text.length != 0) {
+        return textSpan;
+      } else {
+        return TextSpan(
+            style: style, text: text
+        );
+      }
+    }
+
+    return textSpan;
   }
 }

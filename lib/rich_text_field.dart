@@ -14,8 +14,8 @@ import 'package:flutter/gestures.dart';
 import 'package:rich_text_field/rich_editable_text.dart';
 import 'package:rich_text_field/rich_text_selection.dart';
 
-import 'cupertino/text_selection.dart';
-import 'material/text_selection.dart';
+import 'cupertino/rich_text_selection.dart';
+import 'material/rich_text_selection.dart';
 
 //import 'debug.dart';
 //import 'feedback.dart';
