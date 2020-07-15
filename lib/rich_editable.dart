@@ -1693,9 +1693,9 @@ class RichRenderEditable extends RenderBox with
   /// {@template flutter.rendering.editable.select}
   /// This method is mainly used to translate user inputs in global positions
   /// into a [TextSelection]. When used in conjunction with a [EditableText],
-  /// the selection change is fed back into [TextEditingController.selection].
+  /// the selection change is fed back into [RichTextEditingController.selection].
   ///
-  /// If you have a [TextEditingController], it's generally easier to
+  /// If you have a [RichTextEditingController], it's generally easier to
   /// programmatically manipulate its `value` or `selection` directly.
   /// {@endtemplate}
   void selectPosition({ @required SelectionChangedCause cause }) {
