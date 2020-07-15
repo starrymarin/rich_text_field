@@ -54,6 +54,220 @@ const Duration _kCursorBlinkWaitForStart = Duration(milliseconds: 150);
 // is shown in an obscured text field.
 const int _kObscureShowLatestCharCursorTicks = 3;
 
+typedef WidgetSpanAddedCallback = void Function(TextEditingValue value);
+
+class WidgetSpanLocation {
+  int baseOffset;
+  WidgetSpan widgetSpan;
+
+  WidgetSpanLocation(this.baseOffset, this.widgetSpan);
+
+}
+
+/// A controller for an editable text field.
+///
+/// Whenever the user modifies a text field with an associated
+/// [RichTextEditingController], the text field updates [value] and the controller
+/// notifies its listeners. Listeners can then read the [text] and [selection]
+/// properties to learn what the user has typed or how the selection has been
+/// updated.
+///
+/// Similarly, if you modify the [text] or [selection] properties, the text
+/// field will be notified and will update itself appropriately.
+///
+/// A [RichTextEditingController] can also be used to provide an initial value for a
+/// text field. If you build a text field with a controller that already has
+/// [text], the text field will use that text as its initial value.
+///
+/// The [text] or [selection] properties can be set from within a listener
+/// added to this controller. If both properties need to be changed then the
+/// controller's [value] should be set instead.
+///
+/// Remember to [dispose] of the [RichTextEditingController] when it is no longer needed.
+/// This will ensure we discard any resources used by the object.
+/// {@tool dartpad --template=stateful_widget_material}
+/// This example creates a [TextField] with a [RichTextEditingController] whose
+/// change listener forces the entered text to be lower case and keeps the
+/// cursor at the end of the input.
+///
+/// ```dart
+/// final _controller = RichTextEditingController();
+///
+/// void initState() {
+///   super.initState();
+///   _controller.addListener(() {
+///     final text = _controller.text.toLowerCase();
+///     _controller.value = _controller.value.copyWith(
+///       text: text,
+///       selection: TextSelection(baseOffset: text.length, extentOffset: text.length),
+///       composing: TextRange.empty,
+///     );
+///   });
+/// }
+///
+/// void dispose() {
+///   _controller.dispose();
+///   super.dispose();
+/// }
+///
+/// Widget build(BuildContext context) {
+///   return Scaffold(
+///     body: Container(
+///      alignment: Alignment.center,
+///       padding: const EdgeInsets.all(6),
+///       child: TextFormField(
+///         controller: _controller,
+///         decoration: InputDecoration(border: OutlineInputBorder()),
+///       ),
+///     ),
+///   );
+/// }
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [TextField], which is a Material Design text field that can be controlled
+///    with a [RichTextEditingController].
+///  * [EditableText], which is a raw region of editable text that can be
+///    controlled with a [RichTextEditingController].
+///  * Learn how to use a [RichTextEditingController] in one of our [cookbook recipe]s.(https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-RichTextEditingController)
+class RichTextEditingController extends ValueNotifier<TextEditingValue> {
+  List<WidgetSpanLocation> widgetSpanLocationList = List();
+  /// Creates a controller for an editable text field.
+  ///
+  /// This constructor treats a null [text] argument as if it were the empty
+  /// string.
+  RichTextEditingController({ String text })
+      : super(text == null ? TextEditingValue.empty : TextEditingValue(text: text));
+
+  /// Creates a controller for an editable text field from an initial [TextEditingValue].
+  ///
+  /// This constructor treats a null [value] argument as if it were
+  /// [TextEditingValue.empty].
+  RichTextEditingController.fromValue(TextEditingValue value)
+      : super(value ?? TextEditingValue.empty);
+
+  WidgetSpanAddedCallback _widgetSpanAddedCallback;
+
+  void addWidgetSpan(WidgetSpan widgetSpan) {
+    if (_widgetSpanAddedCallback != null
+        && selection.baseOffset == selection.extentOffset) {
+      WidgetSpanLocation location;
+      print(selection);
+      if (selection.affinity == TextAffinity.downstream) {
+        location = WidgetSpanLocation(selection.baseOffset, widgetSpan);
+      } else {
+        location = WidgetSpanLocation(selection.baseOffset - 1, widgetSpan);
+      }
+      widgetSpanLocationList.add(location);
+      widgetSpanLocationList.sort((left, right) =>
+          left.baseOffset.compareTo(right.baseOffset));
+      _widgetSpanAddedCallback.call(value.copyWith(
+          selection: selection.copyWith(
+            baseOffset: selection.baseOffset + 1,
+            extentOffset: selection.extentOffset + 1,
+          )
+      ));
+    }
+  }
+
+  /// The current string the user is editing.
+  String get text => value.text;
+  /// Setting this will notify all the listeners of this [RichTextEditingController]
+  /// that they need to update (it calls [notifyListeners]). For this reason,
+  /// this value should only be set between frames, e.g. in response to user
+  /// actions, not during the build, layout, or paint phases.
+  ///
+  /// This property can be set from a listener added to this
+  /// [RichTextEditingController]; however, one should not also set [selection]
+  /// in a separate statement. To change both the [text] and the [selection]
+  /// change the controller's [value].
+  set text(String newText) {
+    value = value.copyWith(
+      text: newText,
+      selection: const TextSelection.collapsed(offset: -1),
+      composing: TextRange.empty,
+    );
+  }
+
+  /// Builds [TextSpan] from current editing value.
+  ///
+  /// By default makes text in composing range appear as underlined.
+  /// Descendants can override this method to customize appearance of text.
+  TextSpan buildTextSpan({TextStyle style , bool withComposing}) {
+    if (!value.composing.isValid || !withComposing) {
+      return TextSpan(style: style, text: text);
+    }
+    final TextStyle composingStyle = style.merge(
+      const TextStyle(decoration: TextDecoration.underline),
+    );
+    return TextSpan(
+        style: style,
+        children: <TextSpan>[
+          TextSpan(text: value.composing.textBefore(value.text)),
+          TextSpan(
+            style: composingStyle,
+            text: value.composing.textInside(value.text),
+          ),
+          TextSpan(text: value.composing.textAfter(value.text)),
+        ]);
+  }
+
+  /// The currently selected [text].
+  ///
+  /// If the selection is collapsed, then this property gives the offset of the
+  /// cursor within the text.
+  TextSelection get selection => value.selection;
+  /// Setting this will notify all the listeners of this [RichTextEditingController]
+  /// that they need to update (it calls [notifyListeners]). For this reason,
+  /// this value should only be set between frames, e.g. in response to user
+  /// actions, not during the build, layout, or paint phases.
+  ///
+  /// This property can be set from a listener added to this
+  /// [RichTextEditingController]; however, one should not also set [text]
+  /// in a separate statement. To change both the [text] and the [selection]
+  /// change the controller's [value].
+  set selection(TextSelection newSelection) {
+    if (!isSelectionWithinTextBounds(newSelection))
+      throw FlutterError('invalid text selection: $newSelection');
+    value = value.copyWith(selection: newSelection, composing: TextRange.empty);
+  }
+
+  /// Set the [value] to empty.
+  ///
+  /// After calling this function, [text] will be the empty string and the
+  /// selection will be invalid.
+  ///
+  /// Calling this will notify all the listeners of this [RichTextEditingController]
+  /// that they need to update (it calls [notifyListeners]). For this reason,
+  /// this method should only be called between frames, e.g. in response to user
+  /// actions, not during the build, layout, or paint phases.
+  void clear() {
+    value = TextEditingValue.empty;
+  }
+
+  /// Set the composing region to an empty range.
+  ///
+  /// The composing region is the range of text that is still being composed.
+  /// Calling this function indicates that the user is done composing that
+  /// region.
+  ///
+  /// Calling this will notify all the listeners of this [RichTextEditingController]
+  /// that they need to update (it calls [notifyListeners]). For this reason,
+  /// this method should only be called between frames, e.g. in response to user
+  /// actions, not during the build, layout, or paint phases.
+  void clearComposing() {
+    value = value.copyWith(composing: TextRange.empty);
+  }
+
+  /// Check that the [selection] is inside of the bounds of [text].
+  bool isSelectionWithinTextBounds(TextSelection selection) {
+    return selection.start <= text.length + widgetSpanLocationList.length
+        && selection.end <= text.length + widgetSpanLocationList.length;
+  }
+}
+
 /// A basic text input field.
 ///
 /// This widget interacts with the [TextInput] service to let the user edit the
@@ -235,7 +449,7 @@ class RichEditableText extends StatefulWidget {
         super(key: key);
 
   /// Controls the text being edited.
-  final TextEditingController controller;
+  final RichTextEditingController controller;
 
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
@@ -565,7 +779,7 @@ class RichEditableText extends StatefulWidget {
   ///
   /// To be notified of all changes to the TextField's text, cursor,
   /// and selection, one can add a listener to its [controller] with
-  /// [TextEditingController.addListener].
+  /// [RichTextEditingController.addListener].
   ///
   /// {@tool dartpad --template=stateful_widget_material}
   ///
@@ -573,11 +787,11 @@ class RichEditableText extends StatefulWidget {
   /// current value each time the user inserts or deletes a character.
   ///
   /// ```dart
-  /// TextEditingController _controller;
+  /// RichTextEditingController _controller;
   ///
   /// void initState() {
   ///   super.initState();
-  ///   _controller = TextEditingController();
+  ///   _controller = RichTextEditingController();
   /// }
   ///
   /// void dispose() {
@@ -666,8 +880,8 @@ class RichEditableText extends StatefulWidget {
   ///
   /// ```dart
   /// FocusScopeNode _focusScopeNode = FocusScopeNode();
-  /// final _controller1 = TextEditingController();
-  /// final _controller2 = TextEditingController();
+  /// final _controller1 = RichTextEditingController();
+  /// final _controller2 = RichTextEditingController();
   ///
   /// void dispose() {
   ///   _focusScopeNode.dispose();
@@ -847,7 +1061,7 @@ class RichEditableText extends StatefulWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<TextEditingController>('controller', controller));
+    properties.add(DiagnosticsProperty<RichTextEditingController>('controller', controller));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode));
     properties.add(DiagnosticsProperty<bool>('obscureText', obscureText, defaultValue: false));
     properties.add(DiagnosticsProperty<bool>('autocorrect', autocorrect, defaultValue: true));
@@ -932,6 +1146,7 @@ class RichEditableTextState extends State<RichEditableText> with AutomaticKeepAl
     _floatingCursorResetController = AnimationController(vsync: this);
     _floatingCursorResetController.addListener(_onFloatingCursorResetTick);
     _cursorVisibilityNotifier.value = widget.showCursor;
+    widget.controller._widgetSpanAddedCallback = updateEditingValue;
   }
 
   @override

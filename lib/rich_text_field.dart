@@ -160,7 +160,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGesture
 /// To integrate the [RichTextField] into a [Form] with other [FormField] widgets,
 /// consider using [TextFormField].
 ///
-/// Remember to [dispose] of the [TextEditingController] when it is no longer needed.
+/// Remember to [dispose] of the [RichTextEditingController] when it is no longer needed.
 /// This will ensure we discard any resources used by the object.
 ///
 /// {@tool snippet}
@@ -193,11 +193,11 @@ class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGesture
 /// callback.
 ///
 /// ```dart
-/// TextEditingController _controller;
+/// RichTextEditingController _controller;
 ///
 /// void initState() {
 ///   super.initState();
-///   _controller = TextEditingController();
+///   _controller = RichTextEditingController();
 /// }
 ///
 /// void dispose() {
@@ -244,7 +244,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGesture
 /// callback.
 ///
 /// Keep in mind you can also always read the current string from a TextField's
-/// [TextEditingController] using [TextEditingController.text].
+/// [RichTextEditingController] using [RichTextEditingController.text].
 ///
 /// See also:
 ///
@@ -256,8 +256,8 @@ class _TextFieldSelectionGestureDetectorBuilder extends RichTextSelectionGesture
 ///    [TextField]. The [EditableText] widget is rarely used directly unless
 ///    you are implementing an entirely different design language, such as
 ///    Cupertino.
-///  * Learn how to use a [TextEditingController] in one of our
-///    [cookbook recipe](https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-texteditingcontroller)s.
+///  * Learn how to use a [RichTextEditingController] in one of our
+///    [cookbook recipe](https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-RichTextEditingController)s.
 class RichTextField extends StatefulWidget {
   /// Creates a Material Design text field.
   ///
@@ -395,8 +395,8 @@ class RichTextField extends StatefulWidget {
 
   /// Controls the text being edited.
   ///
-  /// If null, this widget will create its own [TextEditingController].
-  final TextEditingController controller;
+  /// If null, this widget will create its own [RichTextEditingController].
+  final RichTextEditingController controller;
 
   /// Defines the keyboard focus for this widget.
   ///
@@ -722,7 +722,7 @@ class RichTextField extends StatefulWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<TextEditingController>('controller', controller, defaultValue: null));
+    properties.add(DiagnosticsProperty<RichTextEditingController>('controller', controller, defaultValue: null));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode, defaultValue: null));
     properties.add(DiagnosticsProperty<bool>('enabled', enabled, defaultValue: null));
     properties.add(DiagnosticsProperty<InputDecoration>('decoration', decoration, defaultValue: const InputDecoration()));
@@ -756,8 +756,8 @@ class RichTextField extends StatefulWidget {
 }
 
 class _RichTextFieldState extends State<RichTextField> implements RichTextSelectionGestureDetectorBuilderDelegate {
-  TextEditingController _controller;
-  TextEditingController get _effectiveController => widget.controller ?? _controller;
+  RichTextEditingController _controller;
+  RichTextEditingController get _effectiveController => widget.controller ?? _controller;
 
   FocusNode _focusNode;
   FocusNode get _effectiveFocusNode => widget.focusNode ?? (_focusNode ??= FocusNode());
@@ -861,7 +861,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
     super.initState();
     _selectionGestureDetectorBuilder = _TextFieldSelectionGestureDetectorBuilder(state: this);
     if (widget.controller == null) {
-      _controller = TextEditingController();
+      _controller = RichTextEditingController();
     }
     _effectiveFocusNode.canRequestFocus = _isEnabled;
   }
@@ -870,7 +870,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
   void didUpdateWidget(RichTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller == null && oldWidget.controller != null)
-      _controller = TextEditingController.fromValue(oldWidget.controller.value);
+      _controller = RichTextEditingController.fromValue(oldWidget.controller.value);
     else if (widget.controller != null && oldWidget.controller == null)
       _controller = null;
     _effectiveFocusNode.canRequestFocus = _isEnabled;
@@ -967,7 +967,7 @@ class _RichTextFieldState extends State<RichTextField> implements RichTextSelect
     final ThemeData themeData = Theme.of(context);
     final TextStyle style = themeData.textTheme.subtitle1.merge(widget.style);
     final Brightness keyboardAppearance = widget.keyboardAppearance ?? themeData.primaryColorBrightness;
-    final TextEditingController controller = _effectiveController;
+    final RichTextEditingController controller = _effectiveController;
     final FocusNode focusNode = _effectiveFocusNode;
     final List<TextInputFormatter> formatters = widget.inputFormatters ?? <TextInputFormatter>[];
     if (widget.maxLength != null && widget.maxLengthEnforced)
