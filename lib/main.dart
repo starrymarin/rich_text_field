@@ -65,26 +65,32 @@ class _MyHomePageState extends State<MyHomePage> {
 class RichRichTextEditingController2 extends RichTextEditingController {
   @override
   TextSpan buildTextSpan({TextStyle style, bool withComposing}) {
-    print(text);
+    return super.buildTextSpan(style: style, withComposing: withComposing);
 
-    List<InlineSpan> inlineSpans = List();
 
-    int lastBaseOffset = 0;
-    widgetSpanLocationList.forEach((element) {
-      String substring = text.substring(lastBaseOffset, element.baseOffset);
-      inlineSpans.add(TextSpan(style: style, text: substring));
-      inlineSpans.add(element.widgetSpan);
-      lastBaseOffset = element.baseOffset;
-    });
-    inlineSpans.add(TextSpan(style: style, text: text.substring(lastBaseOffset)));
-    if (inlineSpans.isEmpty) {
-      return super.buildTextSpan(style: style, withComposing: withComposing);
-    }
+//    print(text);
+//
+//    List<InlineSpan> inlineSpans = List();
+//
+//    int lastBaseOffset = 0;
+//    widgetSpanLocationList.forEach((element) {
+//      String substring = text.substring(lastBaseOffset, element.baseOffset);
+//      inlineSpans.add(TextSpan(style: style, text: substring));
+//      inlineSpans.add(element.widgetSpan);
+//      lastBaseOffset = element.baseOffset;
+//    });
+//    inlineSpans.add(TextSpan(style: style, text: text.substring(lastBaseOffset)));
+//    if (inlineSpans.isEmpty) {
+//      return super.buildTextSpan(style: style, withComposing: withComposing);
+//    }
+//
+//    return TextSpan(
+//      style: style,
+//      children: inlineSpans
+//    );
 
-    return TextSpan(
-      style: style,
-      children: inlineSpans
-    );
+
+
 //    final TextStyle composingStyle = style.merge(
 //      const TextStyle(textBaseline: TextBaseline.ideographic),
 //    );
