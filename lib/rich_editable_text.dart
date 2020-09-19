@@ -136,7 +136,7 @@ class WidgetSpanLocation {
 ///  * Learn how to use a [RichTextEditingController] in one of our [cookbook recipe]s.(https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-RichTextEditingController)
 class RichTextEditingController extends ValueNotifier<TextEditingValue> {
   List<WidgetSpanLocation> widgetSpanLocationList = List();
-  HashMap<String, WidgetSpan> widgetSpanMap = HashMap();
+  List<WidgetSpan> cachedWidgetSpan = List();
   /// Creates a controller for an editable text field.
   ///
   /// This constructor treats a null [text] argument as if it were the empty
@@ -154,25 +154,10 @@ class RichTextEditingController extends ValueNotifier<TextEditingValue> {
   WidgetSpanAddedCallback _widgetSpanAddedCallback;
 
   void addWidgetSpan(WidgetSpan widgetSpan) {
-    String uuid = Uuid().v4().replaceAll("-", "");
-    String widgetSpanTag = "<wsid-$uuid>";
-    widgetSpanMap[uuid] = widgetSpan;
-
-
-
-    if (_widgetSpanAddedCallback != null
-        && selection.baseOffset == selection.extentOffset) {
-      WidgetSpanLocation location;
-      print(selection);
-      if (selection.affinity == TextAffinity.downstream) {
-        location = WidgetSpanLocation(selection.baseOffset, widgetSpan);
-      } else {
-        location = WidgetSpanLocation(selection.baseOffset - 1, widgetSpan);
-      }
-      widgetSpanLocationList.add(location);
-      widgetSpanLocationList.sort((left, right) =>
-          left.baseOffset.compareTo(right.baseOffset));
+    if (_widgetSpanAddedCallback != null) {
+      cachedWidgetSpan.add(widgetSpan);
       _widgetSpanAddedCallback.call(value.copyWith(
+          text: text + '\u200b',
           selection: selection.copyWith(
             baseOffset: selection.baseOffset + 1,
             extentOffset: selection.extentOffset + 1,
@@ -205,13 +190,6 @@ class RichTextEditingController extends ValueNotifier<TextEditingValue> {
   /// By default makes text in composing range appear as underlined.
   /// Descendants can override this method to customize appearance of text.
   TextSpan buildTextSpan({TextStyle style , bool withComposing}) {
-    var start = new DateTime.now().millisecondsSinceEpoch;
-    var index = 0;
-    text.runes.forEach((element) {
-      index++;
-    });
-    print("耗时： ${new DateTime.now().millisecondsSinceEpoch - start}");
-    
     if (!value.composing.isValid || !withComposing) {
       return TextSpan(style: style, text: text);
     }

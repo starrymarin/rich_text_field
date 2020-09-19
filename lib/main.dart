@@ -33,6 +33,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   RichRichTextEditingController2 _controller2 = RichRichTextEditingController2();
 
+  var textStyle = TextStyle(color: Colors.black, fontSize: 40);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,11 +43,21 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: <Widget>[
-          RichTextField(
-            style: TextStyle(textBaseline: TextBaseline.ideographic),
-            controller: _controller2,
-            maxLines: null,
-          ),
+          // RichTextField(
+          //   style: TextStyle(textBaseline: TextBaseline.ideographic),
+          //   controller: _controller2,
+          //   maxLines: null,
+          // ),
+          RichText(text: TextSpan(
+            style: textStyle,
+            children: [
+              TextSpan(
+                text: "456",
+                style: TextStyle(inherit: false, backgroundColor: Colors.red)
+              ),
+              TextSpan(text: "789")
+            ]
+          )),
           Row(
             children: <Widget>[
               MaterialButton(
